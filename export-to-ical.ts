@@ -63,8 +63,16 @@ function rowToEntry(fields: string[]): CalendarEntry {
   const busyStatus = fields[10] as 'free' | 'tentative' | 'busy' | 'out-of-office';
   const sensitivity = fields[11] as 'normal' | 'personal' | 'private' | 'confidential';
   const isRecurring = fields[12] === 'Yes';
-  const recurrencePattern = fields[13];
+  let recurrencePattern = fields[13];
   const reminder = fields[14] ? parseInt(fields[14]) : undefined;
+
+  // Fix: Yearly recurrence with INTERVAL=12 is invalid - should be INTERVAL=1 or omitted
+  // Outlook stores yearly as 12 months, but iCalendar expects 1 year
+  if (recurrencePattern && recurrencePattern.includes('FREQ=YEARLY') && recurrencePattern.includes('INTERVAL=12')) {
+    recurrencePattern = recurrencePattern.replace(/INTERVAL=12;?/, '');
+    // Clean up any double semicolons
+    recurrencePattern = recurrencePattern.replace(/;;/g, ';');
+  }
 
   // Parse dates
   let startDateTime: Date;

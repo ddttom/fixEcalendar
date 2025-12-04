@@ -362,8 +362,14 @@ export class CalendarExtractor {
     }
 
     // Add interval (period)
+    // Note: For yearly events, Outlook stores period as 12 (months), but iCalendar expects 1 (year)
     if (pattern.period && pattern.period > 1) {
-      rruleParts.push(`INTERVAL=${pattern.period}`);
+      // Convert months to years for yearly frequency
+      if (pattern.recurFrequency === 8205 && pattern.period === 12) {
+        // 12 months = 1 year, so INTERVAL=1 (which is default, no need to add)
+      } else {
+        rruleParts.push(`INTERVAL=${pattern.period}`);
+      }
     }
 
     // Handle pattern type specific data
