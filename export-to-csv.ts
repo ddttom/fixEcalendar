@@ -98,6 +98,9 @@ async function exportToCSV() {
   const rows: string[] = [];
   rows.push(headers.map(escapeCSV).join(','));
 
+  // Track unique entries to avoid duplicates after date normalization
+  const seen = new Set<string>();
+
   for (const entry of entries) {
     let startDate = new Date(entry.start_time);
     let endDate = new Date(entry.end_time);
@@ -155,6 +158,15 @@ async function exportToCSV() {
       entry.recurrence_pattern
     );
 
+    // Create unique key for deduplication (subject + start date + start time)
+    const uniqueKey = `${standardizedSubject}|${startDateStr}|${startTimeStr}`;
+
+    // Skip if we've already seen this exact entry
+    if (seen.has(uniqueKey)) {
+      continue;
+    }
+    seen.add(uniqueKey);
+
     const row = [
       standardizedSubject,
       startDateStr,
@@ -183,7 +195,13 @@ async function exportToCSV() {
   const outputPath = 'calendar-export.csv';
   fs.writeFileSync(outputPath, csvContent, 'utf-8');
 
-  console.log(`\n✓ Successfully exported ${entries.length} entries to ${outputPath}`);
+  const uniqueEntries = rows.length - 1; // Subtract header row
+  const duplicatesRemoved = entries.length - uniqueEntries;
+
+  console.log(`\n✓ Successfully exported ${uniqueEntries} unique entries to ${outputPath}`);
+  if (duplicatesRemoved > 0) {
+    console.log(`  (${duplicatesRemoved} duplicates removed after date normalization)`);
+  }
   console.log(`\nYou can open this file in Excel, Google Sheets, or any spreadsheet application.`);
 }
 
