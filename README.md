@@ -875,6 +875,11 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Fix**: CSV import now correctly unescapes `\n` back to actual newlines for ICS generation
 - **Result**: 100% data integrity in CSV → ICS conversion (previously lost ~50% of entries)
 - **Impact**: Before fix: 2,470/4,886 entries converted. After fix: 4,886/4,886 entries converted
+- **Critical Fix**: Corrupted recurrence UNTIL dates now sanitized (Microsoft Outlook bug)
+- **Fix**: Recurrence patterns with UNTIL dates before year 1900 are projected to year 2100
+- **Impact**: Fixed 71 corrupted entries with `UNTIL=16001231` → `UNTIL=21001231`
+- **Tool**: Added `sanitize-recurrence-dates.ts` script to fix existing database entries
+- **Prevention**: Import code now sanitizes corrupted dates automatically for future PST imports
 
 ### v1.2.3 (2025-12-04)
 

@@ -437,11 +437,21 @@ export class CalendarExtractor {
     switch (pattern.endType) {
       case 8225: // AfterDate
         if (pattern.endDate) {
+          let endYear = pattern.endDate.getFullYear();
+          // Sanitize corrupted end dates: project dates before 1900 to year 2100
+          // Corrupted PST files sometimes have dates like 1600-12-31
+          if (endYear < 1900) {
+            endYear = 2100;
+            logger.info(`Sanitized corrupted recurrence end date from ${pattern.endDate.getFullYear()} to 2100 for better calendar compatibility`);
+          }
+          // Cap end date at 2100 for consistency
+          if (endYear > 2100) {
+            endYear = 2100;
+          }
           // Format as YYYYMMDD
-          const year = pattern.endDate.getFullYear();
           const month = String(pattern.endDate.getMonth() + 1).padStart(2, '0');
           const day = String(pattern.endDate.getDate()).padStart(2, '0');
-          rruleParts.push(`UNTIL=${year}${month}${day}`);
+          rruleParts.push(`UNTIL=${endYear}${month}${day}`);
         }
         break;
 

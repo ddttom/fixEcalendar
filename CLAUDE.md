@@ -264,6 +264,47 @@ const description = fields[6]?.replace(/\\n/g, '\n');
 - `export-to-csv.ts:12-22` (escapeCSV function)
 - `export-to-ical.ts:60` (description unescaping)
 
+### Corrupted Recurrence UNTIL Dates (Fixed in v1.2.4)
+**Issue**: Microsoft Outlook PST files sometimes contain recurrence patterns with corrupted UNTIL dates set to year 1600 (e.g., `UNTIL=16001231`). This causes calendar applications to either reject the recurrence rule or display events incorrectly.
+
+**Root Cause**: Known Microsoft Outlook bug where recurrence end dates are stored with invalid year values (< 1900). Affected approximately 71 entries in typical PST files.
+
+**Solution (Fixed in v1.2.4)**:
+1. **Import sanitization** (`src/parser/calendar-extractor.ts:440-455`): Projects corrupted dates (year < 1900) to year 2100 during PST import
+2. **Database cleanup tool** (`sanitize-recurrence-dates.ts`): One-time script to fix existing database entries
+
+**Impact**:
+- **Before fix**: 71 entries with `UNTIL=16001231` (year 1600 - invalid)
+- **After fix**: All sanitized to `UNTIL=21001231` (year 2100 - reasonable end date)
+
+**Code Pattern**:
+```typescript
+// In calendar-extractor.ts
+case 8225: // AfterDate
+  if (pattern.endDate) {
+    let endYear = pattern.endDate.getFullYear();
+    // Sanitize corrupted end dates: project dates before 1900 to year 2100
+    if (endYear < 1900) {
+      endYear = 2100;
+      logger.info(`Sanitized corrupted recurrence end date from ${pattern.endDate.getFullYear()} to 2100`);
+    }
+    // Cap end date at 2100 for consistency
+    if (endYear > 2100) {
+      endYear = 2100;
+    }
+    const month = String(pattern.endDate.getMonth() + 1).padStart(2, '0');
+    const day = String(pattern.endDate.getDate()).padStart(2, '0');
+    rruleParts.push(`UNTIL=${endYear}${month}${day}`);
+  }
+  break;
+```
+
+**Location**:
+- `src/parser/calendar-extractor.ts:438-456` (sanitization during import)
+- `sanitize-recurrence-dates.ts` (database cleanup script)
+
+**Usage**: Run `npx ts-node sanitize-recurrence-dates.ts` to fix existing database entries, then re-export CSV/ICS files.
+
 ### Google Calendar Import (Fixed in v1.2.2)
 **Issue**: ICS files generated before v1.2.2 fail to import into Google Calendar silently (no error, no events imported).
 
