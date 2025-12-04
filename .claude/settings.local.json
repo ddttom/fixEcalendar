@@ -14,7 +14,20 @@
       "Bash(tee:*)",
       "Bash(paste:*)",
       "Bash(awk:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar log --oneline -10)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar status)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar remote -v)",
+      "Bash(tree:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(git rm:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run format:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
