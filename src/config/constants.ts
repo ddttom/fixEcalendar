@@ -10,6 +10,9 @@ export const CALENDAR_FOLDER_NAMES = [
   'Calendario', // Spanish/Italian
 ];
 
+// Container class value for calendar folders (Microsoft standard)
+export const CALENDAR_CONTAINER_CLASS = 'IPF.Appointment';
+
 export const IMPORTANCE_MAP: Record<number, number> = {
   0: 9, // Low → iCal Priority 9
   1: 5, // Normal → iCal Priority 5

@@ -66,14 +66,26 @@ export class CalendarExtractor {
 
   private parseAppointment(appointment: any, options: ExtractionOptions): CalendarEntry | null {
     try {
-      // Get basic properties
-      const subject = appointment.subject || '(No Subject)';
-      const startTime = appointment.startTime;
-      const endTime = appointment.endTime;
+      // Get basic properties - discard entries without a subject
+      const subject = appointment.subject;
+      if (!subject || subject.trim() === '') {
+        logger.debug('Skipping appointment with no subject (likely corrupted/incomplete)');
+        return null;
+      }
 
-      // Validate required fields
+      let startTime = appointment.startTime;
+      let endTime = appointment.endTime;
+
+      // Attempt to sanitize and recover missing dates
+      const sanitized = this.sanitizeDates(appointment, startTime, endTime, subject);
+      if (sanitized) {
+        startTime = sanitized.startTime;
+        endTime = sanitized.endTime;
+      }
+
+      // Validate required fields after sanitization attempt
       if (!startTime || !endTime) {
-        logger.warn(`Skipping appointment "${subject}": missing start or end time`);
+        logger.warn(`Skipping appointment "${subject}": missing start or end time (could not recover)`);
         return null;
       }
 
@@ -530,5 +542,128 @@ export class CalendarExtractor {
     const subject = appointment.subject || 'event';
     const start = appointment.startTime?.getTime() || Date.now();
     return `${subject.replace(/\s+/g, '-')}-${start}`;
+  }
+
+  private sanitizeDates(
+    appointment: any,
+    startTime: Date | null,
+    endTime: Date | null,
+    subject: string
+  ): { startTime: Date; endTime: Date } | null {
+    let recovered = false;
+
+    // Check if this is a birthday, anniversary, or holiday (should be all-day)
+    const subjectLower = subject.toLowerCase();
+    const isAllDayEvent =
+      subjectLower.includes('birthday') ||
+      subjectLower.includes('anniversary') ||
+      subjectLower.includes('holiday') ||
+      subjectLower.includes('easter') ||
+      subjectLower.includes('christmas') ||
+      subjectLower.includes('bank holiday') ||
+      subjectLower.includes('good friday') ||
+      subjectLower.includes('st ') ||
+      subjectLower.includes('saint ');
+
+    // Strategy 1: If we have startTime but no endTime, calculate endTime from duration
+    if (startTime && !endTime) {
+      const duration = appointment.duration; // Duration in minutes
+      if (duration && duration > 0) {
+        endTime = new Date(startTime.getTime() + duration * 60 * 1000);
+        logger.info(`Recovered endTime for "${subject}" using duration (${duration} min)`);
+        recovered = true;
+      }
+    }
+
+    // Strategy 2: If we have endTime but no startTime, calculate startTime from duration
+    if (!startTime && endTime) {
+      const duration = appointment.duration; // Duration in minutes
+      if (duration && duration > 0) {
+        startTime = new Date(endTime.getTime() - duration * 60 * 1000);
+        logger.info(`Recovered startTime for "${subject}" using duration (${duration} min)`);
+        recovered = true;
+      }
+    }
+
+    // Strategy 3: If missing both dates, try alternative date fields
+    if (!startTime && !endTime) {
+      const duration = appointment.duration || 60; // Default 1 hour in minutes
+
+      // Try recurrenceBase for recurring appointments
+      const recurrenceBase = appointment.recurrenceBase;
+      if (recurrenceBase) {
+        startTime = recurrenceBase;
+        endTime = new Date(recurrenceBase.getTime() + duration * 60 * 1000);
+        logger.info(`Recovered dates for "${subject}" using recurrenceBase`);
+        recovered = true;
+      }
+      // Try attendeeCriticalChange (when meeting was sent)
+      else if (appointment.attendeeCriticalChange) {
+        startTime = appointment.attendeeCriticalChange;
+        endTime = new Date(appointment.attendeeCriticalChange.getTime() + duration * 60 * 1000);
+        logger.info(`Recovered dates for "${subject}" using attendeeCriticalChange`);
+        recovered = true;
+      }
+      // Try creationTime as last resort
+      else if (appointment.creationTime) {
+        startTime = appointment.creationTime;
+        endTime = new Date(appointment.creationTime.getTime() + duration * 60 * 1000);
+        logger.info(`Recovered dates for "${subject}" using creationTime`);
+        recovered = true;
+      }
+      // Try clientSubmitTime
+      else if (appointment.clientSubmitTime) {
+        startTime = appointment.clientSubmitTime;
+        endTime = new Date(appointment.clientSubmitTime.getTime() + duration * 60 * 1000);
+        logger.info(`Recovered dates for "${subject}" using clientSubmitTime`);
+        recovered = true;
+      }
+      // Try messageDeliveryTime
+      else if (appointment.messageDeliveryTime) {
+        startTime = appointment.messageDeliveryTime;
+        endTime = new Date(appointment.messageDeliveryTime.getTime() + duration * 60 * 1000);
+        logger.info(`Recovered dates for "${subject}" using messageDeliveryTime`);
+        recovered = true;
+      }
+    }
+
+    // Strategy 4: If endTime is before startTime, swap them
+    if (startTime && endTime && endTime < startTime) {
+      logger.warn(`Dates reversed for "${subject}", swapping start and end times`);
+      [startTime, endTime] = [endTime, startTime];
+      recovered = true;
+    }
+
+    // Strategy 5: If endTime equals startTime, fix duration
+    if (startTime && endTime && startTime.getTime() === endTime.getTime()) {
+      if (isAllDayEvent) {
+        // For birthdays/anniversaries/holidays, make it a full day event
+        // Set start to midnight and end to next midnight
+        const startOfDay = new Date(
+          startTime.getFullYear(),
+          startTime.getMonth(),
+          startTime.getDate(),
+          0,
+          0,
+          0,
+          0
+        );
+        const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+        startTime = startOfDay;
+        endTime = endOfDay;
+        logger.info(`Made "${subject}" an all-day event (birthday/anniversary/holiday)`);
+      } else {
+        // For regular appointments, add 1 hour
+        endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+        logger.info(`EndTime equals startTime for "${subject}", adding 1 hour duration`);
+      }
+      recovered = true;
+    }
+
+    if (recovered && startTime && endTime) {
+      return { startTime, endTime };
+    }
+
+    return null;
   }
 }

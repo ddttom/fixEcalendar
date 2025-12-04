@@ -39,7 +39,9 @@
       "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar commit -m \"$(cat <<''EOF''\nfeat: add Claude Code slash commands for build workflows\n\nAdded 6 convenient slash commands for common development tasks:\n- /build-full: Complete pre-commit cycle (format → lint → test → build)\n- /build-quick: Fast verification (lint → build)\n- /build-ci: Simulate CI pipeline locally\n- /build-test: Build and test workflow\n- /build-release: Pre-release verification with clean build\n- /add-new: Add PST file to database with deduplication\n\nAll commands stop immediately on first failure and provide clear output.\n\nUpdated permissions in settings.local.json to allow npm ci and rm commands.\nDocumented commands in README.md Development section.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar push)",
       "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar add .claude/settings.local.json package-lock.json)",
-      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar commit -m \"$(cat <<''EOF''\nchore: update permissions and Node.js engine requirement\n\n- Added git workflow permissions to settings.local.json\n- Updated Node.js engine requirement to >=18.18.0 in package-lock.json\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar commit -m \"$(cat <<''EOF''\nchore: update permissions and Node.js engine requirement\n\n- Added git workflow permissions to settings.local.json\n- Updated Node.js engine requirement to >=18.18.0 in package-lock.json\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(grep:*)",
+      "Bash(printf:*)"
     ],
     "deny": [],
     "ask": []

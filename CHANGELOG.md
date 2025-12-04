@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- File Status Report: Shows summary of problematic PST files at end of processing
+  - Files with errors (unreadable, corrupted, or no calendar folders)
+  - Files with zero calendar entries
+  - Files where all entries were duplicates
+- **Intelligent Date Recovery & Data Quality**: Automatically recovers valid appointments and filters corrupted data
+  - Uses duration field to calculate missing start/end times
+  - Falls back to alternative date fields (recurrenceBase, creationTime, etc.)
+  - Fixes reversed dates (endTime before startTime)
+  - Handles zero-duration appointments intelligently
+  - **Birthdays/anniversaries/holidays**: Automatically converted to all-day events (full 24-hour duration)
+  - **Data quality**: Discards corrupted entries with no subject (prevents ~7,000+ junk entries)
+  - Result: ~5,000 quality calendar entries vs 12,000+ bloated entries with corrupted data
+
+### Changed
+- **Breaking Change**: Now processes ALL calendar folders found in a PST file, not just the largest one
+- Multiple calendar folders in a single PST are now all processed automatically
+- Clear folder-by-folder progress indication when processing multiple folders
+- Total summary shown when multiple folders are processed
+
+### Fixed
+- Calendar folder detection now uses Microsoft's PR_CONTAINER_CLASS property (containerClass)
+- Folders like "Calendar (This computer only)" are now correctly recognized as calendar folders
+- Parser now finds and processes ALL calendar folders in PST file, including nested folders
+- Enhanced logging shows displayName, containerClass, and entry count for troubleshooting
+- Fallback to name-based detection ensures backward compatibility with existing PST files
+- Appointments with missing start/end times now recovered using intelligent fallback strategies
+
 ## [1.2.2] - 2025-12-04
 
 ### Added

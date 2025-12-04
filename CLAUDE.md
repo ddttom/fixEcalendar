@@ -261,6 +261,155 @@ Birthday and anniversary date normalization can create duplicate entries. The CS
 
 **Location**: `export-to-csv.ts:102-165`
 
+### Calendar Folder Detection (Fixed in v1.2.3)
+**Issue**: Folders with non-standard names like "Calendar (This computer only)" were not recognized as calendar folders, causing "No calendar folder found in PST file" errors. Additionally, nested calendar folder structures were not fully explored, and only the largest folder was processed when multiple calendar folders existed.
+
+**Root Cause**: The parser used exact string matching on folder display names against a hardcoded list (`CALENDAR_FOLDER_NAMES`). This failed for folders with suffixes, localized names, or custom naming. The parser also stopped searching after finding the first calendar folder, missing nested folders with actual content. Initially, the fix selected only the folder with the most entries, but this missed data in smaller calendar folders like imported .ics files.
+
+**Solution**: Implemented Microsoft's recommended approach using the PR_CONTAINER_CLASS property (containerClass in pst-extractor):
+- **Primary detection**: Check if `folder.containerClass` starts with "IPF.Appointment" (the Microsoft standard for calendar folders)
+- **Fallback detection**: Check display name against known calendar folder names (preserves backward compatibility)
+- **Complete search**: Parser now finds ALL calendar folders in the entire PST structure, including nested folders
+- **Process all folders**: Changed from selecting one folder to processing ALL calendar folders found in a PST file
+- **Progress tracking**: Clear folder-by-folder progress indication when processing multiple folders
+- **Nested folder support**: Handles complex folder structures like:
+  ```
+  📁 Calendar (This computer only) - 0 entries (processed, 0 entries found)
+    └─ 📁 Calendar (This computer only) - 18,415 entries (processed, 15,987 entries extracted)
+  📁 Calendar - 2 entries (processed, 2 entries extracted)
+  📁 schedule.ics - 5 entries (processed, 5 entries extracted)
+  ```
+
+**Location**:
+- `src/parser/pst-parser.ts:71-89` (getAllCalendarFolders method)
+- `src/parser/pst-parser.ts:91-143` (findAllCalendarFolders method)
+- `src/index-with-db.ts:62-130` (processWithDatabase function - processes all folders)
+
+**Code Pattern**:
+```typescript
+// Find ALL calendar folders (depth-first search)
+private findAllCalendarFolders(folder: any): any[] {
+  const calendarFolders: any[] = [];
+
+  // Check if current folder is a calendar folder
+  if (containerClass?.trim().toLowerCase().startsWith('ipf.appointment')) {
+    calendarFolders.push(folder);
+  }
+
+  // Always search subfolders (even if current folder is a calendar)
+  if (folder.hasSubfolders) {
+    const subFolders = folder.getSubFolders();
+    for (const subFolder of subFolders) {
+      calendarFolders.push(...this.findAllCalendarFolders(subFolder));
+    }
+  }
+
+  return calendarFolders;
+}
+
+// Select folder with most entries
+const folderWithMostEntries = folders.reduce((best, current) => {
+  return (current.contentCount || 0) > (best.contentCount || 0) ? current : best;
+});
+```
+
+**Enhanced Logging**: Debug output now shows displayName, containerClass, AND entry count for easier troubleshooting of folder detection issues.
+
+### Intelligent Date Recovery & Data Quality (Added in v1.2.3)
+**Feature**: Automatically recovers appointments with missing or invalid dates while filtering out corrupted entries.
+
+**Date Recovery Strategies** (`src/parser/calendar-extractor.ts:547-636`):
+1. **Duration-based recovery**: If one date exists, calculates the other using the `duration` field (in minutes)
+2. **Alternative date fields**: Falls back to `recurrenceBase`, `attendeeCriticalChange`, `creationTime`, `clientSubmitTime`, or `messageDeliveryTime`
+3. **Date reversal fix**: Automatically swaps dates if `endTime` is before `startTime`
+4. **Zero-duration handling**:
+   - **Birthdays/anniversaries/holidays**: Converted to full 24-hour all-day events (midnight to midnight)
+   - **Regular appointments**: Add 1-hour duration
+5. **Subject validation**: Discards entries with no subject (corrupted/incomplete data)
+
+**Birthday/Anniversary Detection**:
+Intelligently detects special events by subject keywords:
+- birthday, anniversary, holiday
+- easter, christmas, bank holiday, good friday
+- st., saint (e.g., St. Patrick's Day)
+
+These are automatically converted to all-day events with proper midnight-to-midnight timing.
+
+**Data Quality Impact**:
+- **Before**: 12,267 entries (including 7,356 corrupted "(No Subject)" entries)
+- **After**: 4,911 quality entries (60% reduction in database bloat)
+- **All-day events**: 92 birthdays/anniversaries properly formatted
+- **Recovery success**: 341 appointments recovered with date sanitization
+
+**Example Log Output**:
+```
+[INFO] Made "Birthday - Bill Bray" an all-day event (birthday/anniversary/holiday)
+[INFO] Made "Anniversary - George & Lilian (1954)" an all-day event (birthday/anniversary/holiday)
+[INFO] EndTime equals startTime for "Private Appointment", adding 1 hour duration
+[INFO] Recovered endTime for "Team Meeting" using duration (60 min)
+```
+
+**Location**: `src/parser/calendar-extractor.ts:67-84` (subject validation), `src/parser/calendar-extractor.ts:547-636` (sanitizeDates method)
+
+### File Status Report (Added in v1.2.3)
+**Feature**: When processing multiple PST files, the CLI now generates a comprehensive File Status Report showing problematic files at the end of processing.
+
+**Categories Tracked**:
+1. **Files with errors**: PST files that failed to process (unreadable, corrupted, no calendar folders found) with specific error messages
+2. **Files with zero entries**: Valid PST files that contained no calendar entries (e.g., empty calendars, contact-only PST files)
+3. **Files with only duplicates**: PST files where all entries were duplicates of entries already in the database
+
+**Use Case**: Helps identify which PST files need attention when batch processing multiple files. For example:
+- Contact PST files mixed with calendar PST files → shown in "errors" (no calendar folder)
+- Backup copies of the same PST → shown in "only duplicates"
+- Empty or archived PST files → shown in "zero entries"
+
+**Location**: `src/index-with-db.ts:270-336` (tracking and report generation)
+
+**Example Output**:
+```
+=== File Status Report ===
+
+Files with errors (3):
+  - contacts.pst: No calendar folder found in PST file
+  - corrupt.pst: Failed to open PST file
+  - encrypted.pst: The PST file may be corrupted, encrypted, or in an unsupported format
+
+Files with zero entries (1):
+  - empty-archive.pst
+
+Files with only duplicates (1):
+  - backup-copy.pst: 15987 entries were duplicates
+```
+
+**Implementation Pattern**:
+```typescript
+// Track problematic files during processing
+const filesWithErrors: Array<{ file: string; error: string }> = [];
+const filesWithZeroEntries: string[] = [];
+const filesWithOnlyDuplicates: Array<{ file: string; count: number }> = [];
+
+for (const inputPath of inputFiles) {
+  try {
+    const result = await processWithDatabase(inputPath, database, options);
+
+    if (result.found === 0) {
+      filesWithZeroEntries.push(fileName);
+    } else if (result.added === 0 && result.found > 0) {
+      filesWithOnlyDuplicates.push({ file: fileName, count: result.found });
+    }
+  } catch (error) {
+    filesWithErrors.push({ file: fileName, error: errorMsg });
+  }
+}
+
+// Display report at end if any problematic files found
+if (filesWithErrors.length > 0 || filesWithZeroEntries.length > 0 || filesWithOnlyDuplicates.length > 0) {
+  console.log('\n=== File Status Report ===');
+  // ... display each category
+}
+```
+
 ## Version History Location
 
 See CHANGELOG.md for detailed version history. Current version defined in package.json.

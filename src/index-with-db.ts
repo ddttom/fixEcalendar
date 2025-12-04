@@ -59,47 +59,72 @@ async function processWithDatabase(
   await parser.open(inputPath);
 
   try {
-    // Find calendar folder
-    const calendarFolder = await parser.getCalendarFolder();
+    // Find all calendar folders
+    const calendarFolders = await parser.getAllCalendarFolders();
 
-    if (!calendarFolder) {
+    if (calendarFolders.length === 0) {
       throw new Error('No calendar folder found in PST file');
     }
 
-    // Extract calendar entries
+    // Extract calendar entries from all folders
     const extractor = new CalendarExtractor();
-    logger.info('Extracting calendar entries...');
-    const entries = await extractor.extractFromFolder(calendarFolder, extractOptions);
+    let totalFound = 0;
+    let totalAdded = 0;
+    let totalSkipped = 0;
 
-    if (entries.length === 0) {
-      logger.warn('No calendar entries found');
-      return { found: 0, added: 0, skipped: 0 };
-    }
+    for (let i = 0; i < calendarFolders.length; i++) {
+      const folder = calendarFolders[i];
+      const folderPrefix =
+        calendarFolders.length > 1 ? `[Folder ${i + 1}/${calendarFolders.length}] ` : '';
 
-    logger.info(`Found ${entries.length} calendar entries`);
+      logger.info(
+        `${folderPrefix}Extracting from: "${folder.displayName}" (${folder.contentCount || 0} entries)`
+      );
 
-    // Add entries to database with deduplication
-    let added = 0;
-    let skipped = 0;
+      const entries = await extractor.extractFromFolder(folder, extractOptions);
 
-    logger.info('Storing entries in database...');
-    for (const entry of entries) {
-      if (database.addEntry(entry, inputPath)) {
-        added++;
-        if (added % 100 === 0) {
-          logger.debug(`Stored ${added}/${entries.length} entries...`);
-        }
-      } else {
-        skipped++;
+      if (entries.length === 0) {
+        logger.warn(`${folderPrefix}No calendar entries found in "${folder.displayName}"`);
+        continue;
       }
+
+      logger.info(`${folderPrefix}Found ${entries.length} calendar entries`);
+
+      // Add entries to database with deduplication
+      let added = 0;
+      let skipped = 0;
+
+      logger.info(`${folderPrefix}Storing entries in database...`);
+      for (const entry of entries) {
+        if (database.addEntry(entry, inputPath)) {
+          added++;
+          if (added % 100 === 0) {
+            logger.debug(`${folderPrefix}Stored ${added}/${entries.length} entries...`);
+          }
+        } else {
+          skipped++;
+        }
+      }
+
+      totalFound += entries.length;
+      totalAdded += added;
+      totalSkipped += skipped;
+
+      logger.success(
+        `${folderPrefix}✓ Processed "${folder.displayName}": ${added} added, ${skipped} duplicates skipped`
+      );
     }
 
-    logger.success(`✓ Processed ${inputPath}: ${added} added, ${skipped} duplicates skipped`);
+    if (calendarFolders.length > 1) {
+      logger.success(
+        `✓ Total for ${path.basename(inputPath)}: ${totalAdded} added, ${totalSkipped} duplicates skipped from ${calendarFolders.length} folders`
+      );
+    }
 
     // Log to database
-    database.logProcessing(inputPath, entries.length, added, skipped);
+    database.logProcessing(inputPath, totalFound, totalAdded, totalSkipped);
 
-    return { found: entries.length, added, skipped };
+    return { found: totalFound, added: totalAdded, skipped: totalSkipped };
   } finally {
     parser.close();
   }
@@ -267,17 +292,34 @@ async function main() {
           let totalAdded = 0;
           let totalSkipped = 0;
 
+          // Track problematic files for end report
+          const filesWithErrors: Array<{ file: string; error: string }> = [];
+          const filesWithZeroEntries: string[] = [];
+          const filesWithOnlyDuplicates: Array<{ file: string; count: number }> = [];
+
           for (let i = 0; i < inputFiles.length; i++) {
             const inputPath = inputFiles[i];
-            logger.info(`[${i + 1}/${inputFiles.length}] ${path.basename(inputPath)}`);
+            const fileName = path.basename(inputPath);
+            logger.info(`[${i + 1}/${inputFiles.length}] ${fileName}`);
 
             try {
               const result = await processWithDatabase(inputPath, database, options);
               totalFound += result.found;
               totalAdded += result.added;
               totalSkipped += result.skipped;
+
+              // Track files with zero entries
+              if (result.found === 0) {
+                filesWithZeroEntries.push(fileName);
+              }
+              // Track files where all entries were duplicates
+              else if (result.added === 0 && result.found > 0) {
+                filesWithOnlyDuplicates.push({ file: fileName, count: result.found });
+              }
             } catch (error) {
+              const errorMsg = (error as Error).message;
               logger.error(`Failed to process ${inputPath}:`, error as Error);
+              filesWithErrors.push({ file: fileName, error: errorMsg });
             }
           }
 
@@ -287,6 +329,36 @@ async function main() {
           console.log(`Total entries found: ${totalFound}`);
           console.log(`New entries added: ${totalAdded}`);
           console.log(`Duplicates skipped: ${totalSkipped}`);
+
+          // Show file status report if there are problematic files
+          if (
+            filesWithErrors.length > 0 ||
+            filesWithZeroEntries.length > 0 ||
+            filesWithOnlyDuplicates.length > 0
+          ) {
+            console.log('\n=== File Status Report ===');
+
+            if (filesWithErrors.length > 0) {
+              console.log(`\nFiles with errors (${filesWithErrors.length}):`);
+              filesWithErrors.forEach(({ file, error }) => {
+                console.log(`  - ${file}: ${error}`);
+              });
+            }
+
+            if (filesWithZeroEntries.length > 0) {
+              console.log(`\nFiles with zero entries (${filesWithZeroEntries.length}):`);
+              filesWithZeroEntries.forEach((file) => {
+                console.log(`  - ${file}`);
+              });
+            }
+
+            if (filesWithOnlyDuplicates.length > 0) {
+              console.log(`\nFiles with only duplicates (${filesWithOnlyDuplicates.length}):`);
+              filesWithOnlyDuplicates.forEach(({ file, count }) => {
+                console.log(`  - ${file}: ${count} entries were duplicates`);
+              });
+            }
+          }
 
           // Show database stats
           await showDatabaseStats(database);
