@@ -141,6 +141,7 @@ Standalone script that converts CSV export to iCalendar (ICS) format.
 - Uses ICalConverter to generate RFC 5545 compliant `calendar-export.ics`
 - Preserves all properties including attendees, recurrence, reminders
 - Reuses existing PropertyMapper for consistent formatting
+- **Includes automatic cleanup**: Removes invalid `INTERVAL=12` from yearly recurrence rules for Google Calendar compatibility
 
 **Workflow:**
 ```
@@ -182,10 +183,17 @@ If changing which fields determine uniqueness:
 
 ## TypeScript Configuration
 
-- Target: ES2022 (modern Node.js 16+)
+- Target: ES2022 (modern Node.js 18.18.0+)
 - Strict mode enabled (full type safety)
 - CommonJS modules (CLI compatibility)
 - Source maps generated for debugging
+
+## Node.js Version Requirements
+
+- **Minimum Version**: Node.js 18.18.0 or higher
+- **Reason**: Modern ESLint 9 and TypeScript ESLint 8 dependencies require Node 18.18.0+
+- **CI/CD**: Tests run on Node.js 18.x and 20.x (16.x removed in v1.2.2)
+- **Package.json**: `engines.node` field set to `>=18.18.0`
 
 ## Performance Characteristics
 
@@ -202,8 +210,15 @@ PST files store all-day events with UTC timestamps, causing timezone offset issu
 ### Birthday Subject Standardization
 The system extracts the date from the recurrence pattern's `BYMONTHDAY` and formats subjects consistently as `Name (dd/mm/yyyy)`, removing various legacy date formats.
 
-### Recurrence Patterns
+### Recurrence Patterns (Critical: Google Calendar Compatibility)
 Uses `pst-extractor`'s RecurrencePattern class for binary parsing, then converts to RFC5545 RRULE format. Supports DAILY, WEEKLY, MONTHLY, YEARLY frequencies with ordinals, intervals, and counts.
+
+**Important Fix (v1.2.2)**: Outlook stores yearly recurring events with `period=12` (12 months), but iCalendar RFC 5545 expects yearly events to use `INTERVAL=1` or omit the interval entirely. The code now automatically:
+1. Detects yearly events with `period=12` in `calendar-extractor.ts`
+2. Skips adding `INTERVAL=12` to the RRULE
+3. Cleans up existing CSV data with invalid intervals in `export-to-ical.ts`
+
+This ensures Google Calendar and other RFC 5545 compliant applications can import the ICS files without silent failures.
 
 ### HTML Description Processing
 Descriptions are extracted from `body` or `bodyHTML` fields. HTML tags are stripped via regex, HTML entities decoded, then passed through `formatDescription()` utility.
@@ -214,6 +229,37 @@ The npm package installs a global `fixECalendar` command that points to `dist/in
 1. Modify `src/index-with-db.ts`
 2. Run `npm run build`
 3. Test with `node dist/index-with-db.js [args]`
+
+## Known Issues and Important Fixes
+
+### Google Calendar Import (Fixed in v1.2.2)
+**Issue**: ICS files generated before v1.2.2 fail to import into Google Calendar silently (no error, no events imported).
+
+**Root Cause**: Outlook stores yearly recurring events with `RecurrencePattern.period = 12` (representing 12 months). The code was directly converting this to `INTERVAL=12` in the RRULE, but RFC 5545 specifies that yearly events should use `INTERVAL=1` or omit the interval parameter entirely.
+
+**Solution Locations**:
+1. `src/parser/calendar-extractor.ts:368` - Skips adding INTERVAL for yearly events with period=12
+2. `export-to-ical.ts:71-75` - Cleans up invalid intervals when reading from CSV
+
+**Code Pattern**:
+```typescript
+// In calendar-extractor.ts
+if (pattern.recurFrequency === 8205 && pattern.period === 12) {
+  // 12 months = 1 year, so INTERVAL=1 (which is default, no need to add)
+} else {
+  rruleParts.push(`INTERVAL=${pattern.period}`);
+}
+
+// In export-to-ical.ts
+if (recurrencePattern?.includes('FREQ=YEARLY') && recurrencePattern?.includes('INTERVAL=12')) {
+  recurrencePattern = recurrencePattern.replace(/INTERVAL=12;?/, '');
+}
+```
+
+### CSV Deduplication (Fixed in v1.2.2)
+Birthday and anniversary date normalization can create duplicate entries. The CSV export now tracks unique entries using a composite key (subject + start date + start time) to prevent duplicates after date standardization.
+
+**Location**: `export-to-csv.ts:102-165`
 
 ## Version History Location
 
