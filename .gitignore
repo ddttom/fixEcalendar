@@ -62,3 +62,6 @@ temp/
 *.csv
 calendar-*.ics
 *-export.csv
+
+# AI Assistant files (AGENTS.md is symlink to CLAUDE.md)
+AGENTS.md
