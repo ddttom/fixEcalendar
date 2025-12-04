@@ -388,6 +388,14 @@ This creates `calendar-export.csv` with the following columns:
 
 This ensures all birthday/anniversary dates are consistently formatted across all exports.
 
+**Automatic Deduplication:** The CSV export includes intelligent deduplication to prevent duplicate entries:
+- Duplicates are detected after date normalization and subject standardization
+- Uses a unique key combining subject + start date + start time
+- Reports number of duplicates removed during export
+- Example output: `✓ Successfully exported 4035 unique entries (49 duplicates removed after date normalization)`
+
+This is particularly important for recurring birthday/anniversary events that may appear multiple times in the database but should only appear once in the final export after date correction.
+
 ### Convert CSV to ICS
 
 If you have a CSV file exported from the database, you can convert it to iCalendar (ICS) format:
