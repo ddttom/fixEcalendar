@@ -30,7 +30,12 @@
       "Bash(git push:*)",
       "Bash(test:*)",
       "Bash(ln:*)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(npm ci:*)",
+      "Bash(rm:*)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar diff --cached)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar diff)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar add .claude/commands/ .claude/settings.local.json README.md)"
     ],
     "deny": [],
     "ask": []

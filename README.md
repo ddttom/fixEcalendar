@@ -553,6 +553,24 @@ Run without building:
 npm run dev -- input.pst --output output.ics
 ```
 
+### Claude Code Commands
+
+If you're using [Claude Code](https://claude.com/claude-code), this project includes convenient slash commands for common development workflows:
+
+| Command | Description | Steps |
+|---------|-------------|-------|
+| `/build-full` | Complete pre-commit build cycle | Format → Lint fix → Test → Build |
+| `/build-quick` | Fast verification | Lint → Build |
+| `/build-ci` | Simulate CI pipeline locally | Clean install → Lint → Format check → Build → Test with coverage |
+| `/build-test` | Test-focused workflow | Build → Test |
+| `/build-release` | Pre-release verification | Clean → Install → Lint → Test → Build → Verify |
+| `/add-new` | Add PST file to database | Process PST with deduplication |
+
+**Example usage:**
+- Type `/build-full` in Claude Code to run the complete quality check before committing
+- Type `/add-new` to add a new PST file to the database without duplicates
+- All build commands stop immediately on first failure
+
 ## Project Structure
 
 ```
