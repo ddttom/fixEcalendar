@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2024-12-04
+
 ### Added
 - File Status Report: Shows summary of problematic PST files at end of processing
   - Files with errors (unreadable, corrupted, or no calendar folders)
@@ -58,6 +60,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Overlapping events creating calendar clutter
   - Events like "09:30 Aquafit", "11:05 Aquafit" now merged into single "Aquafit" event
   - Merged 7 groups of overlapping events in typical calendar
+
+### Refactored
+- Reorganized project structure for better maintainability
+  - Moved merge-overlapping-events.ts to src/utils/ directory
+  - Removed legacy src/index.ts (direct PST → ICS without database)
+  - Simplified to single database-backed CLI approach (src/index-with-db.ts)
+  - Updated all imports and documentation to reflect new structure
+  - Improved code organization by grouping utility scripts together
 
 ## [1.2.5] - 2025-12-04
 
@@ -273,6 +283,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fast-glob - Fast file pattern matching
 - better-sqlite3 - Fast, synchronous SQLite3 database
 
+[1.3.0]: https://github.com/ddttom/fixEcalendar/compare/v1.2.5...v1.3.0
 [1.2.5]: https://github.com/ddttom/fixEcalendar/compare/v1.2.4...v1.2.5
 [1.2.4]: https://github.com/ddttom/fixEcalendar/compare/v1.2.3...v1.2.4
 [1.2.3]: https://github.com/ddttom/fixEcalendar/compare/v1.2.2...v1.2.3

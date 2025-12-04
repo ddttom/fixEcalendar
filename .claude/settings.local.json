@@ -22,7 +22,11 @@
       "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar add .claude/settings.local.json)",
       "Bash(find:*)",
       "SlashCommand(/export-workflow)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar commit:*)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar push)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar log --oneline -10)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar tag -l)"
     ],
     "deny": [],
     "ask": []
