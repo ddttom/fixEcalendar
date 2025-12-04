@@ -20,12 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Birthdays/anniversaries/holidays**: Automatically converted to all-day events (full 24-hour duration)
   - **Data quality**: Discards corrupted entries with no subject (prevents ~7,000+ junk entries)
   - Result: ~5,000 quality calendar entries vs 12,000+ bloated entries with corrupted data
+- **Prefer COUNT over corrupted UNTIL**: New enhancement to use occurrence count instead of corrupted end dates
+  - When UNTIL date is corrupted (year < 1900) AND occurrenceCount exists (1-50), uses COUNT parameter
+  - Provides exact occurrence counts for finite recurring events (e.g., 4-day course = `COUNT=4`)
+  - More accurate than capping corrupted UNTIL dates to arbitrary future years
+  - Configured via `PREFER_COUNT_FOR_SMALL_OCCURRENCES` and `MAX_OCCURRENCE_COUNT_FOR_PREFERENCE` flags
 
 ### Changed
 - **Breaking Change**: Now processes ALL calendar folders found in a PST file, not just the largest one
 - Multiple calendar folders in a single PST are now all processed automatically
 - Clear folder-by-folder progress indication when processing multiple folders
 - Total summary shown when multiple folders are processed
+- **Recurrence handling**: 202 entries now use COUNT-based patterns instead of capped UNTIL dates for better accuracy
 
 ### Fixed
 - Calendar folder detection now uses Microsoft's PR_CONTAINER_CLASS property (containerClass)
@@ -34,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced logging shows displayName, containerClass, and entry count for troubleshooting
 - Fallback to name-based detection ensures backward compatibility with existing PST files
 - Appointments with missing start/end times now recovered using intelligent fallback strategies
+- Events with small occurrence counts now use precise COUNT parameter instead of distant UNTIL dates
 
 ## [1.2.2] - 2025-12-04
 

@@ -468,6 +468,21 @@ export class CalendarExtractor {
           let endYear = pattern.endDate.getFullYear();
           const originalYear = endYear;
 
+          // Special case: If endDate is corrupted (year < 1900) but occurrenceCount is small and reasonable,
+          // prefer COUNT over UNTIL. This handles cases like "3-day course" stored with corrupted end date.
+          if (
+            endYear < 1900 &&
+            pattern.occurrenceCount &&
+            pattern.occurrenceCount > 1 &&
+            pattern.occurrenceCount <= 50
+          ) {
+            logger.info(
+              `Using COUNT=${pattern.occurrenceCount} instead of corrupted UNTIL date (year ${originalYear}) for better accuracy`
+            );
+            rruleParts.push(`COUNT=${pattern.occurrenceCount}`);
+            break;
+          }
+
           // Sanitize corrupted end dates: project dates before 1900 to year 2100
           // Corrupted PST files sometimes have dates like 1600-12-31
           if (endYear < 1900) {

@@ -42,8 +42,12 @@ export const RECURRENCE_VALIDATION_CONFIG = {
   DAILY_INTERVAL_SUGGEST_WEEKLY: 7, // INTERVAL >= 7 suggests weekly pattern
   DAILY_INTERVAL_SUGGEST_MONTHLY: 28, // INTERVAL >= 28 suggests monthly pattern
 
+  // Occurrence count thresholds
+  MAX_OCCURRENCE_COUNT_FOR_PREFERENCE: 50, // Prefer COUNT over corrupted UNTIL if occurrenceCount <= 50
+
   // Behavior flags
   STRIP_SINGLE_OCCURRENCE: true, // Remove recurrence if occurrenceCount === 1
   CAP_SUSPICIOUS_DATES: true, // Cap UNTIL dates that exceed max years
+  PREFER_COUNT_FOR_SMALL_OCCURRENCES: true, // Use COUNT instead of corrupted UNTIL for small occurrence counts
   LOG_VALIDATION_WARNINGS: true, // Log all validation changes
 };

@@ -343,15 +343,16 @@ case 8225: // AfterDate
 **Usage**: Run `npx ts-node sanitize-recurrence-dates.ts` to fix existing database entries, then re-export CSV/ICS files.
 
 ### Absurd Recurrence Pattern Validation (Fixed in v1.2.5)
-**Issue**: Events with corrupted recurrence patterns were creating absurd recurring schedules. For example, "Toms Online Photo Course" (a single-day event) had recurrence pattern `FREQ=DAILY;UNTIL=21001231T235959Z`, making it repeat **every single day for 76 years** (27,740 occurrences). This completely destroyed calendar views by filling them with thousands of duplicate entries.
+**Issue**: Events with corrupted recurrence patterns were creating absurd recurring schedules. For example, "Toms Online Photo Course" (a 4-day event) had recurrence pattern `FREQ=DAILY;UNTIL=21001231T235959Z`, making it repeat **every single day for 76 years** (27,740 occurrences). This completely destroyed calendar views by filling them with thousands of duplicate entries.
 
 **Root Cause**: The sanitization logic for corrupted UNTIL dates (year < 1900) projected them to year 2100 without validating if the resulting span was reasonable. Microsoft Outlook PST files contain corrupted recurrence end dates that are meaningless, but the code treated them as legitimate and created 70-85 year recurring patterns. **72 entries** were affected with UNTIL=2100 spanning unreasonable time periods.
 
 **Solution (Fixed in v1.2.5)**:
 1. **Recurrence Validator Module** ([src/utils/recurrence-validator.ts](src/utils/recurrence-validator.ts)): Core validation logic with configurable caps per frequency
-2. **PST Import Validation** ([src/parser/calendar-extractor.ts:259-266, 479-488](src/parser/calendar-extractor.ts#L259-L266)): Validates patterns during extraction and caps sanitized UNTIL dates
-3. **Database Cleanup Script** ([cleanup-suspicious-recurrence.ts](cleanup-suspicious-recurrence.ts)): One-time script to fix existing database entries
-4. **CSV Import Cleanup** ([export-to-ical.ts:107-141](export-to-ical.ts#L107-L141)): Defense-in-depth cleanup during CSV→ICS conversion
+2. **PST Import Validation** ([src/parser/calendar-extractor.ts:259-266, 471-503](src/parser/calendar-extractor.ts#L259-L266)): Validates patterns during extraction and caps sanitized UNTIL dates
+3. **COUNT Preference Logic** ([src/parser/calendar-extractor.ts:471-484](src/parser/calendar-extractor.ts#L471-L484)): Prefers COUNT over corrupted UNTIL when occurrenceCount ≤ 50
+4. **Database Cleanup Script** ([cleanup-suspicious-recurrence.ts](cleanup-suspicious-recurrence.ts)): One-time script to fix existing database entries
+5. **CSV Import Cleanup** ([export-to-ical.ts:107-141](export-to-ical.ts#L107-L141)): Defense-in-depth cleanup during CSV→ICS conversion
 
 **Validation Rules**:
 - **DAILY**: Maximum 5 years (unless infinite/COUNT-based)
@@ -359,15 +360,33 @@ case 8225: // AfterDate
 - **MONTHLY**: Maximum 20 years
 - **YEARLY**: Maximum 100 years (birthdays/anniversaries)
 - **Single occurrence**: Strip recurrence if `occurrenceCount === 1`
+- **Prefer COUNT over UNTIL**: When UNTIL is corrupted (year < 1900) AND occurrenceCount exists (1-50), use COUNT for accuracy
 
 **Impact**:
 - **Before fix**: "Toms Online Photo Course" repeated daily for 76 years (27,740 occurrences)
-- **After fix**: Capped at 5 years for daily patterns (1,825 occurrences or stripped entirely if single event)
+- **After fix**: Changed to `COUNT=4` (4 occurrences - the actual 4-day course duration)
 - **Affected**: 72 entries with UNTIL=2100 (11 daily, 61 weekly/monthly/yearly)
-- **Result**: Clean calendar exports without absurd recurring patterns
+- **COUNT-based**: 202 entries now use precise COUNT instead of capped UNTIL dates
+- **Result**: Clean calendar exports without absurd recurring patterns and accurate occurrence counts
 
 **Code Pattern**:
 ```typescript
+// In calendar-extractor.ts (COUNT preference logic - lines 471-484)
+// Special case: If endDate is corrupted (year < 1900) but occurrenceCount is small and reasonable,
+// prefer COUNT over UNTIL. This handles cases like "4-day course" stored with corrupted end date.
+if (
+  endYear < 1900 &&
+  pattern.occurrenceCount &&
+  pattern.occurrenceCount > 1 &&
+  pattern.occurrenceCount <= 50
+) {
+  logger.info(
+    `Using COUNT=${pattern.occurrenceCount} instead of corrupted UNTIL date (year ${originalYear}) for better accuracy`
+  );
+  rruleParts.push(`COUNT=${pattern.occurrenceCount}`);
+  break; // Skip UNTIL processing
+}
+
 // In calendar-extractor.ts (PST import validation)
 const rawRRule = this.buildRRuleFromPattern(pattern, startTime);
 
@@ -381,8 +400,9 @@ const validatedRRule = RecurrenceValidator.validateRecurrencePattern(
 
 return validatedRRule || undefined;
 
-// In calendar-extractor.ts (sanitized UNTIL date validation)
+// In calendar-extractor.ts (sanitized UNTIL date validation - lines 485-503)
 if (endYear < 1900) {
+  const originalYear = endYear;
   endYear = 2100;
 
   // Validate the sanitized date is reasonable
@@ -391,7 +411,7 @@ if (endYear < 1900) {
 
   if (yearsSpan > maxYears) {
     endYear = startTime.getFullYear() + maxYears;
-    logger.warn(`Capping sanitized recurrence to ${endYear}`);
+    logger.warn(`Capping sanitized recurrence to ${endYear} (${maxYears} years max for this frequency)`);
   }
 }
 

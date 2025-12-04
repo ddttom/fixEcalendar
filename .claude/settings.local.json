@@ -12,7 +12,14 @@
       "Bash(git add:*)",
       "Bash(git restore:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npm run build:*)",
+      "Bash(node dist/index-with-db.js:*)",
+      "Bash(tee:*)",
+      "Bash(column -t -s '|':*)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar add -A)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar status)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar add .claude/settings.local.json)"
     ],
     "deny": [],
     "ask": []

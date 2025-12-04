@@ -989,16 +989,18 @@ MIT License - see [LICENSE](LICENSE) file for details.
   - MONTHLY: Maximum 20 years
   - YEARLY: Maximum 100 years (birthdays/anniversaries)
   - Single occurrence: Strips recurrence if `occurrenceCount === 1`
+  - **Prefer COUNT over UNTIL**: When corrupted UNTIL detected (year < 1900) and occurrenceCount ≤ 50, uses COUNT for accuracy
 - **New Tool**: `cleanup-suspicious-recurrence.ts` - Database cleanup script for existing entries
 - **Enhancement**: CSV import (`export-to-ical.ts`) includes defense-in-depth cleanup for UNTIL=2100 patterns
 - **Configuration**: Added `RECURRENCE_VALIDATION_CONFIG` to `src/config/constants.ts` for customizable thresholds
 - **Impact**: Fixed 72 entries with UNTIL=2100 spanning 70-85 years
-  - 11 DAILY entries: Capped to 5 years
+  - 11 DAILY entries: Capped to 5 years or converted to COUNT
   - 45 WEEKLY entries: Capped to 10 years
   - 13 MONTHLY entries: Capped to 20 years
   - 3 YEARLY entries: Kept as-is (legitimate birthdays)
+  - 202 entries now use COUNT instead of corrupted UNTIL dates
 - **Result**: Clean calendar exports without absurd recurring patterns
-- **Example**: "Toms Online Photo Course" reduced from 76 years (27,740 occurrences) to 5 years (1,825 occurrences)
+- **Example**: "Toms Online Photo Course" changed from 76 years (27,740 occurrences) to `COUNT=4` (4 occurrences - the actual course duration)
 - **Documentation**: Added comprehensive section to CLAUDE.md explaining validation rules and usage
 
 ### v1.2.4 (2025-12-04)

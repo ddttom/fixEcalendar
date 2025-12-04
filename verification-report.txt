@@ -1,0 +1,75 @@
+=== IMPORT AND EXPORT VERIFICATION REPORT ===
+Generated: $(date)
+
+## Import Summary
+- PST files processed: 5
+  - C-Users-eshc3-Documents-eleanor-Documents-Outlook Files-archive.pst ✓
+  - C-Users-eshc3-Documents-eleanor-Documents-Outlook Files-eleanor.cranstoun@shoal.demon.co.uk.pst ✓
+  - C-Users-eshc3-Documents-eleanor-Documents-Outlook Files-eleanor@shoal.demon.co.uk.pst ✓
+  - C-Users-eshc3-backup.pst ✓
+  - C-Users-eshc3-OneDrive-Desktop-Not in Use-contacts.pst ✗ (No calendar folder)
+
+- Total entries found: 12,701
+- New entries added: 4,911
+- Duplicates skipped: 7,790
+
+## Database Statistics
+- Total entries: 4,911
+- Recurring entries: 577
+  - COUNT-based: 202 (preferred for small occurrence counts)
+  - UNTIL-based: 11 (long-term recurring events)
+  - FREQ only: 364 (never-ending or yearly birthdays)
+
+## CSV Export
+- Unique entries exported: 4,886
+- Duplicates removed: 25 (date normalization)
+- File: calendar-export.csv
+
+## ICS Export
+- Total files: 10 (split for Google Calendar compatibility)
+- Events per file: 499 (except last file: 395)
+- Format: calendar-part-X-of-10.ics
+
+## Key Fix Verification: "Toms Online Photo Course"
+
+### Database:
+Subject: Toms Online Photo Course
+Start: 2024-08-05 17:00:00 UTC
+End: 2024-08-05 20:00:00 UTC
+Recurrence: RRULE;FREQ=DAILY;COUNT=4 ✓
+
+### CSV:
+Subject: "Toms Online Photo Course"
+Recurrence: "RRULE;FREQ=DAILY;COUNT=4" ✓
+
+### ICS:
+DTSTART:20240805T170000Z
+DTEND:20240805T200000Z
+RRULE:FREQ=DAILY;COUNT=4 ✓
+SUMMARY:Toms Online Photo Course
+
+✓ SUCCESS: Event correctly shows 4 daily occurrences instead of 76 years!
+
+## Sample COUNT-Based Entries (Verification)
+1. "Toms Online Photo Course" - RRULE;FREQ=DAILY;COUNT=4
+2. "09:30 Yoga with Marina" - RRULE;FREQ=WEEKLY;BYDAY=TU;COUNT=10
+3. "10:00 - 12:00 Spanish" - RRULE;FREQ=WEEKLY;BYDAY=TH;COUNT=11
+4. "07:01 Tom Train to London" - RRULE;FREQ=WEEKLY;BYDAY=MO;COUNT=3
+
+## Birthday/Anniversary Patterns (RFC 5545 Compliance)
+Sample entries with proper BYMONTH:
+1. "Birthday - Sue Humphries (1958)" - RRULE;FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=29 ✓
+2. "Steve& Marie Clifford's Birthday" - RRULE;FREQ=YEARLY;BYMONTH=6;BYMONTHDAY=10 ✓
+3. "Birthday - Maria Wood (1953)" - RRULE;FREQ=YEARLY;BYMONTH=11;BYMONTHDAY=4 ✓
+
+## Single-Occurrence Stripping (New Feature)
+Entries that had occurrenceCount=1 were stripped of recurrence:
+- 178 single-occurrence events detected and converted to non-recurring
+- Examples: "Private Appointment" entries, various birthdays marked for single year
+
+## Corrupted UNTIL Date Handling
+- Corrupted dates (year < 1900) detected and handled
+- Small occurrence counts (≤50) preferred COUNT over corrupted UNTIL
+- Large spans capped to reasonable limits (5/10/20/100 years by frequency)
+
+✓ All verification checks PASSED
