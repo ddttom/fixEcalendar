@@ -28,6 +28,7 @@ interface CLIOptions {
   noDedupe?: boolean;
   clearDb?: boolean;
   dbStats?: boolean;
+  skipMerge?: boolean;
 }
 
 async function processWithDatabase(
@@ -224,6 +225,7 @@ async function main() {
     .option('--no-dedupe', 'Disable deduplication (not recommended for large files)')
     .option('--clear-db', 'Clear database before processing')
     .option('--db-stats', 'Show database statistics and exit')
+    .option('--skip-merge', 'Skip automatic merging of overlapping events')
     .option('-v, --verbose', 'Verbose logging')
     .action(async (inputs: string[], options: CLIOptions) => {
       try {
@@ -329,6 +331,24 @@ async function main() {
           console.log(`Total entries found: ${totalFound}`);
           console.log(`New entries added: ${totalAdded}`);
           console.log(`Duplicates skipped: ${totalSkipped}`);
+
+          // Automatically merge overlapping events (unless --skip-merge specified)
+          if (!options.skipMerge && totalAdded > 0) {
+            console.log('\n=== Auto-Merging Overlapping Events ===');
+            try {
+              // Dynamic import using require since it's in the project root
+              const mergePath = path.join(__dirname, '..', 'merge-overlapping-events');
+              const { mergeOverlappingEvents } = require(mergePath);
+              await mergeOverlappingEvents(false); // false = not dry-run
+              console.log('✓ Automatic merge completed');
+            } catch (error) {
+              logger.warn('Auto-merge failed (non-fatal):', error as Error);
+              console.log('You can manually run: npx ts-node merge-overlapping-events.ts');
+            }
+          } else if (options.skipMerge) {
+            console.log('\n⏭️  Skipped automatic merge (--skip-merge specified)');
+            console.log('To merge overlapping events, run: npx ts-node merge-overlapping-events.ts');
+          }
 
           // Show file status report if there are problematic files
           if (

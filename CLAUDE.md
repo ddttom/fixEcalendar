@@ -130,6 +130,41 @@ The SQLite database (`.fixecalendar.db`) has three tables:
 - **`src/utils/text-formatter.ts`**: Modify text cleaning/formatting rules
 - **`src/parser/types.ts`**: Add fields to CalendarEntry interface (affects entire pipeline)
 
+## Automatic Overlapping Event Merging (v1.2.6+)
+
+**Feature**: After PST import, overlapping events with the same description are automatically merged into single events spanning the full time range.
+
+**Example:**
+- **Before merge**: "Aquafit 09:30" (08:00-10:00) + "11:05 Aquafit" (09:30-11:30)
+- **After merge**: "Aquafit" (08:00-11:30) - single merged event
+
+**Merge Behavior:**
+- Runs automatically after successful PST import (if any new entries were added)
+- Normalizes subjects (removes time prefixes like "09:30", "11:00")
+- Only merges events that actually overlap in time on the same day
+- Preserves the longest non-junk description
+- Keeps location, organizer, and recurrence patterns
+- Deletes duplicate entries after merging
+
+**CLI Control:**
+```bash
+# Normal import (automatic merge)
+npx ts-node src/index-with-db.ts input.pst
+
+# Skip automatic merge
+npx ts-node src/index-with-db.ts input.pst --skip-merge
+
+# Manual merge anytime
+npx ts-node merge-overlapping-events.ts
+
+# Preview merge without changes
+npx ts-node merge-overlapping-events.ts --dry-run
+```
+
+**Location**:
+- Merge script: `merge-overlapping-events.ts`
+- Auto-merge integration: `src/index-with-db.ts:335-351`
+
 ## Export Scripts
 
 ### CSV Export (`export-to-csv.ts`)
@@ -190,6 +225,16 @@ WHERE id = [entry_id]
 ```
 
 ## Common Development Patterns
+
+### Data Preservation Policy
+
+**CRITICAL**: Never delete entries from the database unless explicitly requested by the user. When encountering corrupted, suspicious, or invalid data:
+- **Convert** corrupted patterns to valid alternatives (e.g., BYDAY → BYMONTHDAY for birthdays)
+- **Mark** uncertain data with flags like "(UNCERTAIN DATE)" in the subject
+- **Preserve** all calendar data even if it seems wrong - users may need it for manual review
+- **Report** issues to the user but let them decide whether to delete entries
+
+This policy prevents accidental data loss during automated fixes and repairs.
 
 ### Adding a New Export Format
 

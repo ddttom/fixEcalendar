@@ -436,7 +436,7 @@ export class CalendarExtractor {
           }
           break;
 
-        case 3: // MonthNth (e.g., "second Monday")
+        case 3: // MonthNth (e.g., "second Monday", "last Saturday")
           // patternTypeSpecific is MonthNthSpecific
           const monthNth = pattern.patternTypeSpecific as any;
           if (monthNth && monthNth.weekdays && monthNth.nth) {
@@ -453,6 +453,16 @@ export class CalendarExtractor {
 
             if (selectedDays.length > 0) {
               const byDayParts = selectedDays.map((day) => `${ordinal}${day}`);
+
+              // For yearly recurrence with BYDAY, RFC 5545 requires BYMONTH for clarity
+              // Without BYMONTH, "FREQ=YEARLY;BYDAY=-1SA" means "last Saturday of the year" (December)
+              // With BYMONTH=1, it means "last Saturday of January"
+              // Extract month from startTime (1-12 where 1=January, 12=December)
+              if (isYearlyFrequency) {
+                const month = startTime.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+                rruleParts.push(`BYMONTH=${month}`);
+              }
+
               rruleParts.push(`BYDAY=${byDayParts.join(',')}`);
             }
           }

@@ -104,6 +104,22 @@ function rowToEntry(fields: string[]): CalendarEntry {
     }
   }
 
+  // Fix: Yearly recurrence with BYDAY needs BYMONTH (RFC 5545 compliance)
+  // Without BYMONTH, "FREQ=YEARLY;BYDAY=-1SA" means "last Saturday of the year" (December)
+  // With BYMONTH=1, it means "last Saturday of January"
+  // This fixes legacy data exported before this fix was added to calendar-extractor.ts
+  if (
+    recurrencePattern &&
+    recurrencePattern.includes('FREQ=YEARLY') &&
+    recurrencePattern.includes('BYDAY=') &&
+    !recurrencePattern.includes('BYMONTH=')
+  ) {
+    // Extract month from startDate (format: YYYY-MM-DD)
+    const month = parseInt(startDate.substring(5, 7)); // Extract MM from YYYY-MM-DD
+    // Insert BYMONTH after FREQ=YEARLY
+    recurrencePattern = recurrencePattern.replace(/FREQ=YEARLY;?/, `FREQ=YEARLY;BYMONTH=${month};`);
+  }
+
   // Fix: Suspicious UNTIL=2100 patterns (corrupted Outlook data)
   // Cap far-future UNTIL dates to reasonable spans based on frequency
   if (recurrencePattern && recurrencePattern.includes('UNTIL=2100')) {
