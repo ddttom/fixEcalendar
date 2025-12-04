@@ -56,7 +56,8 @@ function rowToEntry(fields: string[]): CalendarEntry {
   const endDate = fields[3];
   const endTime = fields[4];
   const location = fields[5];
-  const description = fields[6];
+  // Unescape literal \n back to actual newlines
+  const description = fields[6]?.replace(/\\n/g, '\n');
   const organizer = fields[7];
   const isAllDay = fields[8] === 'Yes';
   const importance = fields[9] as 'low' | 'normal' | 'high';

@@ -16,8 +16,9 @@ function escapeCSV(value: any): string {
 
   const str = String(value);
 
-  // Always wrap in quotes for Excel compatibility and escape any quotes
-  return `"${str.replace(/"/g, '""')}"`;
+  // Always wrap in quotes for Excel compatibility
+  // Escape quotes by doubling them and replace newlines with literal \n
+  return `"${str.replace(/"/g, '""').replace(/\r?\n/g, '\\n')}"`;
 }
 
 function standardizeBirthdaySubject(subject: string, startDate: Date, recurrencePattern: string | null): string {

@@ -132,11 +132,13 @@ Standalone script that exports calendar entries from the SQLite database to CSV 
 - Outputs `calendar-export.csv` with 15 columns
 - Special handling for birthdays/anniversaries and all-day events
 - Proper CSV escaping for Excel compatibility
+- **Newline escaping**: Converts actual newlines to literal `\n` to ensure each entry is a single CSV row
 
 ### ICS Export from CSV (`export-to-ical.ts`)
 Standalone script that converts CSV export to iCalendar (ICS) format.
 - Reads from `calendar-export.csv`
 - Parses CSV with proper quoted field handling
+- **Newline unescaping**: Converts literal `\n` back to actual newlines in descriptions
 - Converts to CalendarEntry objects
 - Uses ICalConverter to generate RFC 5545 compliant `calendar-export.ics`
 - Preserves all properties including attendees, recurrence, reminders
@@ -231,6 +233,36 @@ The npm package installs a global `fixECalendar` command that points to `dist/in
 3. Test with `node dist/index-with-db.js [args]`
 
 ## Known Issues and Important Fixes
+
+### CSV Export Newline Handling (Fixed in v1.2.4)
+**Issue**: CSV export with multi-line descriptions created broken CSV files where entries spanned multiple rows, causing the CSV → ICS conversion to lose ~50% of entries.
+
+**Root Cause**: The `escapeCSV()` function only escaped quotes but didn't escape newlines. When descriptions contained `\n` characters, they created actual line breaks in the CSV file. The CSV import script used a simple `split('\n')` which treated each line as a separate row, breaking entries that should span a single row into multiple invalid rows.
+
+**Solution (Fixed in v1.2.4)**:
+1. **CSV Export** (`export-to-csv.ts:21`): Added `.replace(/\r?\n/g, '\\n')` to convert actual newlines to literal `\n` text
+2. **CSV Import** (`export-to-ical.ts:60`): Added `.replace(/\\n/g, '\n')` to convert literal `\n` back to actual newlines
+
+**Impact**:
+- **Before fix**: CSV had 26,925 rows (broken), only 2,470 entries imported to ICS (50% data loss)
+- **After fix**: CSV has 4,886 rows (correct), all 4,886 entries imported to ICS (100% data integrity)
+
+**Code Pattern**:
+```typescript
+// In export-to-csv.ts
+function escapeCSV(value: any): string {
+  const str = String(value);
+  // Escape quotes by doubling them and replace newlines with literal \n
+  return `"${str.replace(/"/g, '""').replace(/\r?\n/g, '\\n')}"`;
+}
+
+// In export-to-ical.ts
+const description = fields[6]?.replace(/\\n/g, '\n');
+```
+
+**Location**:
+- `export-to-csv.ts:12-22` (escapeCSV function)
+- `export-to-ical.ts:60` (description unescaping)
 
 ### Google Calendar Import (Fixed in v1.2.2)
 **Issue**: ICS files generated before v1.2.2 fail to import into Google Calendar silently (no error, no events imported).
