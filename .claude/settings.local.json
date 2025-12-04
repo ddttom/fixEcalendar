@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar add .gitignore)",
-      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar commit -m \"$(cat <<''EOF''\nchore: exclude Claude Code local settings from git\n\nAdded .claude/settings.local.json to .gitignore to prevent\nlocal configuration from being tracked in the repository.\n\nThis file contains user-specific permissions and should remain local.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar commit -m \"$(cat <<''EOF''\nchore: exclude Claude Code local settings from git\n\nAdded .claude/settings.local.json to .gitignore to prevent\nlocal configuration from being tracked in the repository.\n\nThis file contains user-specific permissions and should remain local.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(sqlite3:*)",
+      "Bash(grep:*)",
+      "Bash(node -e:*)",
+      "Bash(ls:*)",
+      "Bash(git log:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(git add:*)",
+      "Bash(git restore:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
