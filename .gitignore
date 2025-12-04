@@ -64,3 +64,6 @@ calendar-*.ics
 
 # AI Assistant files (AGENTS.md is symlink to CLAUDE.md)
 AGENTS.md
+
+# Claude Code local settings
+.claude/settings.local.json
