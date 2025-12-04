@@ -921,6 +921,10 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Impact**: Fixed 71 corrupted entries with `UNTIL=16001231` → `UNTIL=21001231`
 - **Tool**: Added `sanitize-recurrence-dates.ts` script to fix existing database entries
 - **Prevention**: Import code now sanitizes corrupted dates automatically for future PST imports
+- **Critical Fix**: All-day events now RFC 5545 compliant for Google Calendar import
+- **Fix**: Birthday/anniversary events now have proper exclusive DTEND dates
+- **Impact**: ICS files now import successfully into Google Calendar without "oops" errors
+- **Technical**: DTEND for all-day events is now the day after the event (exclusive end date per RFC 5545)
 
 ### v1.2.3 (2025-12-04)
 

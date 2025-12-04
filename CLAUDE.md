@@ -331,6 +331,45 @@ case 8225: // AfterDate
 
 **Usage**: Run `npx ts-node sanitize-recurrence-dates.ts` to fix existing database entries, then re-export CSV/ICS files.
 
+### RFC 5545 All-Day Event Compliance (Fixed in v1.2.4)
+**Issue**: Google Calendar rejected ICS imports with "oops we could not import this file" error due to invalid all-day event formatting. Birthday and anniversary events had identical DTSTART and DTEND dates (e.g., `DTSTART=19260613, DTEND=19260613`), violating RFC 5545 which requires DTEND to be exclusive (the day after the event ends).
+
+**Root Cause**: The CSV export stores all-day events with the same start and end date (e.g., June 13 to June 13), which is intuitive from a user perspective. However, RFC 5545 requires DTEND to be the day AFTER the event ends (exclusive). Birthday/anniversary events were not adjusting the end date during ICS conversion, while regular all-day events already had the correct exclusive end date from the database.
+
+**Solution (Fixed in v1.2.4)**:
+Modified `src/converter/property-mapper.ts:74` to add +1 day to the end date for birthday/anniversary events only. Regular all-day events already have correct exclusive dates from the CSV export.
+
+**Impact**:
+- **Before fix**: `DTSTART;VALUE=DATE:19260613` / `DTEND;VALUE=DATE:19260613` ❌ (violates RFC 5545)
+- **After fix**: `DTSTART;VALUE=DATE:19260613` / `DTEND;VALUE=DATE:19260614` ✓ (RFC 5545 compliant)
+- **Result**: ICS files now import successfully into Google Calendar, Apple Calendar, and all RFC 5545 compliant applications
+
+**Code Pattern**:
+```typescript
+// In property-mapper.ts (birthday/anniversary handling)
+if (isBirthdayOrAnniversary && entry.recurrencePattern) {
+  const byMonthDayMatch = entry.recurrencePattern.match(/BYMONTHDAY=(\d+)/);
+  if (byMonthDayMatch) {
+    const correctDay = parseInt(byMonthDayMatch[1]);
+    startTime = new Date(year, month, correctDay);
+    endTime = new Date(year, month, correctDay + 1); // RFC 5545: DTEND is exclusive
+    isAllDay = true;
+  }
+}
+
+// Regular all-day events (no +1 needed - CSV already has exclusive dates)
+if (isAllDay) {
+  startTime = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()));
+  endTime = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()));
+}
+```
+
+**Location**: `src/converter/property-mapper.ts:63-94`
+
+**Key Insight**: The CSV export treats birthday/anniversary events differently from regular all-day events:
+- **Birthdays/anniversaries**: CSV has same start and end date (June 13 → June 13) → needs +1 in ICS
+- **Regular all-day events**: CSV already has exclusive end date (May 4 → May 5) → no adjustment needed
+
 ### Google Calendar Import (Fixed in v1.2.2)
 **Issue**: ICS files generated before v1.2.2 fail to import into Google Calendar silently (no error, no events imported).
 

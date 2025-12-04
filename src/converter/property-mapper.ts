@@ -71,7 +71,7 @@ export class PropertyMapper {
         const month = baseDate.getMonth();
 
         startTime = new Date(year, month, correctDay);
-        endTime = new Date(year, month, correctDay); // Same day for all-day events
+        endTime = new Date(year, month, correctDay + 1); // RFC 5545: DTEND is exclusive
         isAllDay = true; // Force as all-day event
       }
     }
@@ -84,10 +84,13 @@ export class PropertyMapper {
 
       // Create new dates at UTC midnight using Date.UTC
       // This ensures VALUE=DATE formatting shows the correct date
+      // Note: CSV already has exclusive end dates (matching RFC 5545), so no +1 needed
       startTime = new Date(
         Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
       );
-      endTime = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()));
+      endTime = new Date(
+        Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
+      );
     }
 
     // Standardize birthday/anniversary subject format
