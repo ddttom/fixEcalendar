@@ -211,6 +211,13 @@ npx ts-node export-to-ical.ts
 # Creates calendar-export.ics from CSV data
 ```
 
+**Step 6: (Optional) Fix corrupted recurrence dates**
+```bash
+npx ts-node sanitize-recurrence-dates.ts
+# Fixes Microsoft Outlook bug with UNTIL=16001231 dates
+# Projects corrupted dates (year < 1900) to year 2100
+```
+
 ### Single Command (Import + Export)
 
 ```bash
@@ -480,6 +487,40 @@ This creates a full RFC 5545 compliant iCalendar file from your CSV data. The sc
 - Import into calendar applications (Apple Calendar, Google Calendar, Outlook)
 - Create a portable calendar file from CSV data
 - Convert between formats for different use cases
+
+### Fix Corrupted Recurrence Dates
+
+Microsoft Outlook has a known bug where recurrence UNTIL dates are sometimes stored with year 1600 (`UNTIL=16001231`). The `sanitize-recurrence-dates.ts` script fixes these corrupted dates in your existing database:
+
+```bash
+# Fix corrupted recurrence dates in database
+npx ts-node sanitize-recurrence-dates.ts
+```
+
+**What it does:**
+- Scans all recurrence patterns with UNTIL dates
+- Identifies corrupted dates (year < 1900)
+- Projects them to year 2100 for reasonable end dates
+- Reports how many entries were fixed
+
+**Example output:**
+```
+Opening database...
+Searching for entries with corrupted recurrence dates...
+Found 72 entries with UNTIL clauses
+Fixed: "U3A Genealogy Together Group" - UNTIL=16001231 → UNTIL=21001231
+Fixed: "Black Bin Today" - UNTIL=16001231 → UNTIL=21001231
+...
+✓ Fixed 71 corrupted recurrence dates (projected to year 2100)
+  1 entries had valid dates (no changes needed)
+```
+
+**When to use:**
+- After importing PST files with corrupted recurrence dates
+- If you see recurrence patterns with year 1600 in your calendar exports
+- Before exporting to CSV/ICS to ensure clean data
+
+**Note:** Future PST imports automatically sanitize corrupted dates (v1.2.4+), so this tool is mainly for fixing existing database entries from earlier imports.
 
 ## Supported Properties
 

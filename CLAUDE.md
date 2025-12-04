@@ -152,6 +152,32 @@ Database → export-to-csv.ts → calendar-export.csv → export-to-ical.ts → 
 
 This two-step process allows for CSV review/editing before ICS generation.
 
+### Recurrence Date Sanitization (`sanitize-recurrence-dates.ts`)
+Utility script that fixes corrupted UNTIL dates in existing database entries.
+- Scans all calendar entries with recurrence patterns containing UNTIL clauses
+- Identifies corrupted dates with year < 1900 (Microsoft Outlook bug)
+- Projects corrupted dates to year 2100 (same month/day)
+- Reports number of entries fixed
+- **Usage**: `npx ts-node sanitize-recurrence-dates.ts`
+- **When needed**: After importing PST files, or if exports show `UNTIL=16001231` dates
+- **Note**: v1.2.4+ automatically sanitizes during import, so this is for legacy data
+
+**Common corrupted date pattern:**
+- `UNTIL=16001231` (year 1600) → `UNTIL=21001231` (year 2100)
+
+**Database operations:**
+```typescript
+// Find all entries with UNTIL dates
+SELECT id, subject, recurrence_pattern
+FROM calendar_entries
+WHERE recurrence_pattern LIKE '%UNTIL=%'
+
+// Update corrupted dates
+UPDATE calendar_entries
+SET recurrence_pattern = [sanitized_pattern]
+WHERE id = [entry_id]
+```
+
 ## Common Development Patterns
 
 ### Adding a New Export Format
