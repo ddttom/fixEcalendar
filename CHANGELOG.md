@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2025-12-04
+
 ### Added
 - CSV to ICS conversion script (`export-to-ical.ts`)
 - Ability to convert `calendar-export.csv` to `calendar-export.ics`
@@ -27,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `.gitignore` to allow `package-lock.json` for CI/CD
 - CI/CD now tests only Node.js 18.x and 20.x (removed 16.x due to dependency requirements)
 - Updated `package.json` engines field to require Node.js 18.18.0 or higher
+- Updated README prerequisites to specify Node.js 18.18.0 or higher
 
 ### Fixed
 - Duplicate entries in CSV export caused by birthday/anniversary date normalization
@@ -128,6 +131,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fast-glob - Fast file pattern matching
 - better-sqlite3 - Fast, synchronous SQLite3 database
 
+[1.2.2]: https://github.com/ddttom/fixEcalendar/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/ddttom/fixEcalendar/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/ddttom/fixEcalendar/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/ddttom/fixEcalendar/compare/v1.0.0...v1.1.0

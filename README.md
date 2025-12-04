@@ -36,7 +36,7 @@ When processing **large PST files (6.5GB per file)**, fixECalendar uses a SQLite
 
 ### Prerequisites
 
-- Node.js 16 or higher
+- Node.js 18.18.0 or higher
 - npm (comes with Node.js)
 
 ### Global Installation (Recommended)
@@ -601,7 +601,9 @@ fixEcalendar/
 - `FREQ=WEEKLY;BYDAY=MO;COUNT=7` - Every Monday, 7 occurrences
 - `FREQ=MONTHLY;BYDAY=2MO;COUNT=2` - 2nd Monday of month, 2 times
 - `FREQ=MONTHLY;BYDAY=-1FR` - Last Friday of month
-- `FREQ=YEARLY;INTERVAL=12;BYMONTHDAY=29` - Yearly on 29th (birthdays)
+- `FREQ=YEARLY;BYMONTHDAY=29` - Yearly on 29th (birthdays)
+
+**Google Calendar Compatibility:** Version 1.2.2+ correctly formats yearly recurrence rules for RFC 5545 compliance. Outlook stores yearly events as 12-month intervals, which are now automatically converted to proper yearly intervals for compatibility with Google Calendar and other standards-compliant applications.
 
 ## Limitations
 
@@ -610,6 +612,29 @@ fixEcalendar/
 - **Private Appointments**: Excluded by default - **IMPORTANT:** Use `--include-private` to include personal/private/confidential appointments. Many users have most of their appointments marked as private, so this flag is highly recommended for personal calendar exports.
 
 ## Troubleshooting
+
+### Google Calendar import fails silently (FIXED in v1.2.2)
+
+**Issue:** ICS file appears valid but Google Calendar doesn't import any events, or imports fail silently.
+
+**Cause:** Invalid RRULE format with `INTERVAL=12` for yearly recurring events. Outlook stores yearly recurrence as 12-month intervals, but RFC 5545 (iCalendar standard) expects yearly events to omit the interval or use `INTERVAL=1`.
+
+**Solution:** Fixed in version 1.2.2+. The tool now:
+- Automatically converts Outlook's 12-month intervals to proper yearly format
+- Cleans up existing CSV data during conversion to ICS
+- Generates RFC 5545 compliant RRULE for all yearly events
+
+If you exported ICS files before v1.2.2, simply re-run the export:
+```bash
+# Regenerate from CSV
+npx ts-node export-to-ical.ts
+
+# Or regenerate entire workflow
+npx ts-node export-to-csv.ts
+npx ts-node export-to-ical.ts
+```
+
+The new ICS file will import successfully into Google Calendar, Apple Calendar, and all RFC 5545 compliant applications.
 
 ### "No calendar folder found in PST file"
 
@@ -724,6 +749,14 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Discussions**: https://github.com/ddttom/fixEcalendar/discussions
 
 ## Changelog
+
+### v1.2.2 (2025-12-04)
+
+- **Critical Fix**: Google Calendar import now works correctly - fixed invalid RRULE format for yearly recurring events
+- **Fix**: Yearly recurrence now uses `FREQ=YEARLY` without `INTERVAL=12` (RFC 5545 compliant)
+- **Enhancement**: Automatic cleanup of existing CSV data with invalid recurrence intervals
+- **Enhancement**: CI/CD improvements - removed Node.js 16.x, added test suite
+- **Fix**: Updated Node.js requirement to 18.18.0+ to match modern dependencies
 
 ### v1.2.1 (2025-12-04)
 
