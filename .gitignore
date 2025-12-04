@@ -59,7 +59,6 @@ temp/
 
 # Generated calendar exports
 *.ics
-*.csv
 calendar-*.ics
 *-export.csv
 
