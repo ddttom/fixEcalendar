@@ -523,6 +523,67 @@ Fixed: "Black Bin Today" - UNTIL=16001231 → UNTIL=21001231
 
 **Note:** Future PST imports automatically sanitize corrupted dates (v1.2.4+), so this tool is mainly for fixing existing database entries from earlier imports.
 
+### Fix Absurd Recurrence Patterns (NEW in v1.2.5)
+
+**Issue:** Some events have corrupted recurrence patterns creating absurd schedules (e.g., daily for 76 years).
+
+Microsoft Outlook PST files sometimes contain corrupted recurrence end dates that get projected to year 2100, creating unreasonable patterns like "Toms Online Photo Course" repeating daily for 76 years (27,740 occurrences). The `cleanup-suspicious-recurrence.ts` script validates and caps these patterns to reasonable durations:
+
+```bash
+# Fix absurd recurrence patterns in database
+npx ts-node cleanup-suspicious-recurrence.ts
+
+# Review the report
+cat recurrence-cleanup-report.csv
+
+# Re-export with fixed patterns
+npx ts-node export-to-csv.ts
+npx ts-node export-to-ical.ts
+```
+
+**What it does:**
+- Scans all entries with UNTIL=2100 recurrence patterns
+- Validates patterns based on frequency:
+  - **DAILY**: Caps at 5 years maximum
+  - **WEEKLY**: Caps at 10 years maximum
+  - **MONTHLY**: Caps at 20 years maximum
+  - **YEARLY**: Allows up to 100 years (birthdays/anniversaries)
+- Strips recurrence from single-occurrence events (`occurrenceCount=1`)
+- Generates detailed CSV report of all changes
+
+**Example output:**
+```
+=== Recurrence Pattern Cleanup ===
+Found 72 entries with UNTIL=2100
+
+✓ CAPPED: Toms Online Photo Course (76 years → 5 years)
+✓ CAPPED: Check on Eddies Bathroom (81 years → 5 years)
+✓ CAPPED: Black Bin Today (94 years → 10 years)
+...
+
+=== Cleanup Summary ===
+Total entries scanned: 72
+Patterns modified: 69
+  - Capped: 69
+  - Stripped: 0
+
+✓ Report saved to: recurrence-cleanup-report.csv
+```
+
+**Impact:**
+- **Before**: "Toms Online Photo Course" repeated daily for 76 years (27,740 occurrences)
+- **After**: Capped at 5 years (1,825 occurrences or stripped if single event)
+- **Affected**: 72 entries total (11 daily, 45 weekly, 13 monthly, 3 yearly)
+
+**When to use:**
+- After importing PST files (especially large/old archives)
+- If your calendar exports show events repeating for 70+ years
+- Before exporting to calendar applications
+
+**Note:** Version 1.2.5+ automatically validates recurrence patterns during PST import, so this tool is mainly for fixing existing database entries from earlier imports.
+
+**Configuration:** Validation thresholds can be customized in `src/config/constants.ts` under `RECURRENCE_VALIDATION_CONFIG`.
+
 ## Supported Properties
 
 The converter maps the following Outlook calendar properties to iCal format:
@@ -699,9 +760,14 @@ fixEcalendar/
 │   │   ├── logger.ts            # Logging
 │   │   ├── validators.ts        # Validation
 │   │   ├── error-handler.ts    # Error handling
-│   │   └── text-formatter.ts   # Text formatting utilities
+│   │   ├── text-formatter.ts   # Text formatting utilities
+│   │   └── recurrence-validator.ts # Recurrence pattern validation (v1.2.5)
 │   └── config/
-│       └── constants.ts         # Constants
+│       └── constants.ts         # Constants & validation config
+├── cleanup-suspicious-recurrence.ts # Fix absurd recurrence patterns (v1.2.5)
+├── export-to-csv.ts            # Database to CSV export
+├── export-to-ical.ts           # CSV to ICS conversion
+├── sanitize-recurrence-dates.ts # Fix corrupted UNTIL dates (v1.2.4)
 ├── .fixecalendar.db            # SQLite database (generated)
 ├── dist/                        # Compiled JavaScript
 ├── tests/                       # Test files
@@ -909,6 +975,31 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Discussions**: https://github.com/ddttom/fixEcalendar/discussions
 
 ## Changelog
+
+### v1.2.5 (2025-12-04)
+
+- **Critical Fix**: Absurd recurrence patterns now automatically validated and capped
+- **Issue**: Events with corrupted recurrence patterns creating 70-85 year schedules (e.g., "Toms Online Photo Course" repeating daily for 76 years = 27,740 occurrences)
+- **Root Cause**: Sanitization logic projected corrupted UNTIL dates (year < 1900) to year 2100 without validating reasonableness
+- **Solution**: Added comprehensive recurrence pattern validation system
+- **New Module**: `src/utils/recurrence-validator.ts` - Core validation logic with configurable caps per frequency
+- **Enhancement**: PST import now validates all recurrence patterns automatically
+  - DAILY: Maximum 5 years (unless infinite/COUNT-based)
+  - WEEKLY: Maximum 10 years
+  - MONTHLY: Maximum 20 years
+  - YEARLY: Maximum 100 years (birthdays/anniversaries)
+  - Single occurrence: Strips recurrence if `occurrenceCount === 1`
+- **New Tool**: `cleanup-suspicious-recurrence.ts` - Database cleanup script for existing entries
+- **Enhancement**: CSV import (`export-to-ical.ts`) includes defense-in-depth cleanup for UNTIL=2100 patterns
+- **Configuration**: Added `RECURRENCE_VALIDATION_CONFIG` to `src/config/constants.ts` for customizable thresholds
+- **Impact**: Fixed 72 entries with UNTIL=2100 spanning 70-85 years
+  - 11 DAILY entries: Capped to 5 years
+  - 45 WEEKLY entries: Capped to 10 years
+  - 13 MONTHLY entries: Capped to 20 years
+  - 3 YEARLY entries: Kept as-is (legitimate birthdays)
+- **Result**: Clean calendar exports without absurd recurring patterns
+- **Example**: "Toms Online Photo Course" reduced from 76 years (27,740 occurrences) to 5 years (1,825 occurrences)
+- **Documentation**: Added comprehensive section to CLAUDE.md explaining validation rules and usage
 
 ### v1.2.4 (2025-12-04)
 

@@ -104,6 +104,42 @@ function rowToEntry(fields: string[]): CalendarEntry {
     }
   }
 
+  // Fix: Suspicious UNTIL=2100 patterns (corrupted Outlook data)
+  // Cap far-future UNTIL dates to reasonable spans based on frequency
+  if (recurrencePattern && recurrencePattern.includes('UNTIL=2100')) {
+    const startDateObj = new Date(startDate);
+    const yearsSpan = 2100 - startDateObj.getFullYear();
+
+    // Daily recurrence: cap at 5 years
+    if (recurrencePattern.includes('FREQ=DAILY') && yearsSpan > 5) {
+      const cappedYear = startDateObj.getFullYear() + 5;
+      const cappedDate = recurrencePattern.match(/UNTIL=\d{4}(\d{4}T\d{6}Z)/);
+      const dateSuffix = cappedDate ? cappedDate[1] : '1231T235959Z';
+      recurrencePattern = recurrencePattern.replace(/UNTIL=2100\d{4}T\d{6}Z/, `UNTIL=${cappedYear}${dateSuffix}`);
+      console.warn(`⚠️  Capped daily recurrence for "${subject}" to ${cappedYear} (was 2100)`);
+    }
+
+    // Weekly recurrence: cap at 10 years
+    if (recurrencePattern.includes('FREQ=WEEKLY') && yearsSpan > 10) {
+      const cappedYear = startDateObj.getFullYear() + 10;
+      const cappedDate = recurrencePattern.match(/UNTIL=\d{4}(\d{4}T\d{6}Z)/);
+      const dateSuffix = cappedDate ? cappedDate[1] : '1231T235959Z';
+      recurrencePattern = recurrencePattern.replace(/UNTIL=2100\d{4}T\d{6}Z/, `UNTIL=${cappedYear}${dateSuffix}`);
+      console.warn(`⚠️  Capped weekly recurrence for "${subject}" to ${cappedYear} (was 2100)`);
+    }
+
+    // Monthly recurrence: cap at 20 years
+    if (recurrencePattern.includes('FREQ=MONTHLY') && yearsSpan > 20) {
+      const cappedYear = startDateObj.getFullYear() + 20;
+      const cappedDate = recurrencePattern.match(/UNTIL=\d{4}(\d{4}T\d{6}Z)/);
+      const dateSuffix = cappedDate ? cappedDate[1] : '1231T235959Z';
+      recurrencePattern = recurrencePattern.replace(/UNTIL=2100\d{4}T\d{6}Z/, `UNTIL=${cappedYear}${dateSuffix}`);
+      console.warn(`⚠️  Capped monthly recurrence for "${subject}" to ${cappedYear} (was 2100)`);
+    }
+
+    // Yearly recurrence: allow up to 100 years (birthdays/anniversaries are legitimate)
+  }
+
   // Parse dates
   let startDateTime: Date;
   let endDateTime: Date;

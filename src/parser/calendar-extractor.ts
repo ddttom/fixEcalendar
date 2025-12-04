@@ -3,6 +3,7 @@ import { PSTParsingError } from '../utils/error-handler';
 import { logger } from '../utils/logger';
 // Import RecurrencePattern from pst-extractor for detailed recurrence parsing
 import { RecurrencePattern } from 'pst-extractor/dist/RecurrencePattern.class';
+import { RecurrenceValidator, RecurrenceEndType } from '../utils/recurrence-validator';
 
 export class CalendarExtractor {
   async extractFromFolder(folder: any, options: ExtractionOptions = {}): Promise<CalendarEntry[]> {
@@ -252,7 +253,17 @@ export class CalendarExtractor {
         logger.debug(`Parsed recurrence pattern: ${JSON.stringify(pattern.toJSON())}`);
 
         // Build RRULE from parsed pattern
-        return this.buildRRuleFromPattern(pattern, startTime);
+        const rawRRule = this.buildRRuleFromPattern(pattern, startTime);
+
+        // Validate recurrence pattern to catch corrupted/unreasonable patterns
+        const validatedRRule = RecurrenceValidator.validateRecurrencePattern(
+          pattern,
+          startTime,
+          appointment.subject || 'Untitled',
+          rawRRule
+        );
+
+        return validatedRRule || undefined;
       }
 
       // Fallback: try using basic recurrence properties
@@ -455,16 +466,33 @@ export class CalendarExtractor {
       case 8225: // AfterDate
         if (pattern.endDate) {
           let endYear = pattern.endDate.getFullYear();
+          const originalYear = endYear;
+
           // Sanitize corrupted end dates: project dates before 1900 to year 2100
           // Corrupted PST files sometimes have dates like 1600-12-31
           if (endYear < 1900) {
             endYear = 2100;
-            logger.info(`Sanitized corrupted recurrence end date from ${pattern.endDate.getFullYear()} to 2100 for better calendar compatibility`);
+            logger.info(
+              `Sanitized corrupted recurrence end date from ${originalYear} to 2100 for better calendar compatibility`
+            );
+
+            // Validate the sanitized date is reasonable
+            const yearsSpan = endYear - startTime.getFullYear();
+            const maxYears = RecurrenceValidator.getMaxYearsForFrequency(pattern.recurFrequency);
+
+            if (yearsSpan > maxYears) {
+              endYear = startTime.getFullYear() + maxYears;
+              logger.warn(
+                `Capping sanitized recurrence to ${endYear} (${maxYears} years max for this frequency)`
+              );
+            }
           }
+
           // Cap end date at 2100 for consistency
           if (endYear > 2100) {
             endYear = 2100;
           }
+
           // Format as YYYYMMDDTHHMMSSZ (RFC 5545: UNTIL must match DTSTART format)
           // Since DTSTART includes time, UNTIL must also include time in UTC format
           const month = String(pattern.endDate.getMonth() + 1).padStart(2, '0');

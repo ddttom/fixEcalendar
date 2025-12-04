@@ -342,6 +342,93 @@ case 8225: // AfterDate
 
 **Usage**: Run `npx ts-node sanitize-recurrence-dates.ts` to fix existing database entries, then re-export CSV/ICS files.
 
+### Absurd Recurrence Pattern Validation (Fixed in v1.2.5)
+**Issue**: Events with corrupted recurrence patterns were creating absurd recurring schedules. For example, "Toms Online Photo Course" (a single-day event) had recurrence pattern `FREQ=DAILY;UNTIL=21001231T235959Z`, making it repeat **every single day for 76 years** (27,740 occurrences). This completely destroyed calendar views by filling them with thousands of duplicate entries.
+
+**Root Cause**: The sanitization logic for corrupted UNTIL dates (year < 1900) projected them to year 2100 without validating if the resulting span was reasonable. Microsoft Outlook PST files contain corrupted recurrence end dates that are meaningless, but the code treated them as legitimate and created 70-85 year recurring patterns. **72 entries** were affected with UNTIL=2100 spanning unreasonable time periods.
+
+**Solution (Fixed in v1.2.5)**:
+1. **Recurrence Validator Module** ([src/utils/recurrence-validator.ts](src/utils/recurrence-validator.ts)): Core validation logic with configurable caps per frequency
+2. **PST Import Validation** ([src/parser/calendar-extractor.ts:259-266, 479-488](src/parser/calendar-extractor.ts#L259-L266)): Validates patterns during extraction and caps sanitized UNTIL dates
+3. **Database Cleanup Script** ([cleanup-suspicious-recurrence.ts](cleanup-suspicious-recurrence.ts)): One-time script to fix existing database entries
+4. **CSV Import Cleanup** ([export-to-ical.ts:107-141](export-to-ical.ts#L107-L141)): Defense-in-depth cleanup during CSV→ICS conversion
+
+**Validation Rules**:
+- **DAILY**: Maximum 5 years (unless infinite/COUNT-based)
+- **WEEKLY**: Maximum 10 years
+- **MONTHLY**: Maximum 20 years
+- **YEARLY**: Maximum 100 years (birthdays/anniversaries)
+- **Single occurrence**: Strip recurrence if `occurrenceCount === 1`
+
+**Impact**:
+- **Before fix**: "Toms Online Photo Course" repeated daily for 76 years (27,740 occurrences)
+- **After fix**: Capped at 5 years for daily patterns (1,825 occurrences or stripped entirely if single event)
+- **Affected**: 72 entries with UNTIL=2100 (11 daily, 61 weekly/monthly/yearly)
+- **Result**: Clean calendar exports without absurd recurring patterns
+
+**Code Pattern**:
+```typescript
+// In calendar-extractor.ts (PST import validation)
+const rawRRule = this.buildRRuleFromPattern(pattern, startTime);
+
+// Validate recurrence pattern to catch corrupted/unreasonable patterns
+const validatedRRule = RecurrenceValidator.validateRecurrencePattern(
+  pattern,
+  startTime,
+  appointment.subject || 'Untitled',
+  rawRRule
+);
+
+return validatedRRule || undefined;
+
+// In calendar-extractor.ts (sanitized UNTIL date validation)
+if (endYear < 1900) {
+  endYear = 2100;
+
+  // Validate the sanitized date is reasonable
+  const yearsSpan = endYear - startTime.getFullYear();
+  const maxYears = RecurrenceValidator.getMaxYearsForFrequency(pattern.recurFrequency);
+
+  if (yearsSpan > maxYears) {
+    endYear = startTime.getFullYear() + maxYears;
+    logger.warn(`Capping sanitized recurrence to ${endYear}`);
+  }
+}
+
+// In export-to-ical.ts (CSV import cleanup)
+if (recurrencePattern.includes('UNTIL=2100')) {
+  const yearsSpan = 2100 - startDateObj.getFullYear();
+
+  if (recurrencePattern.includes('FREQ=DAILY') && yearsSpan > 5) {
+    const cappedYear = startDateObj.getFullYear() + 5;
+    recurrencePattern = recurrencePattern.replace(/UNTIL=2100\d{4}T\d{6}Z/, `UNTIL=${cappedYear}...`);
+  }
+}
+```
+
+**Location**:
+- [src/utils/recurrence-validator.ts](src/utils/recurrence-validator.ts) - Core validation logic (NEW)
+- [src/parser/calendar-extractor.ts:259-266](src/parser/calendar-extractor.ts#L259-L266) - PST import validation
+- [src/parser/calendar-extractor.ts:466-502](src/parser/calendar-extractor.ts#L466-L502) - Sanitized date validation
+- [cleanup-suspicious-recurrence.ts](cleanup-suspicious-recurrence.ts) - Database cleanup script (NEW)
+- [export-to-ical.ts:107-141](export-to-ical.ts#L107-L141) - CSV import cleanup
+- [src/config/constants.ts:34-49](src/config/constants.ts#L34-L49) - Configuration constants
+
+**Usage**:
+```bash
+# Fix existing database entries
+npx ts-node cleanup-suspicious-recurrence.ts
+
+# Review the cleanup report
+cat recurrence-cleanup-report.csv
+
+# Re-export with fixed patterns
+npx ts-node export-to-csv.ts
+npx ts-node export-to-ical.ts
+```
+
+**Configuration**: Validation thresholds can be customized in [src/config/constants.ts](src/config/constants.ts) under `RECURRENCE_VALIDATION_CONFIG`.
+
 ### RFC 5545 All-Day Event Compliance (Fixed in v1.2.4)
 **Issue**: Google Calendar rejected ICS imports with "oops we could not import this file" error due to invalid all-day event formatting. Birthday and anniversary events had identical DTSTART and DTEND dates (e.g., `DTSTART=19260613, DTEND=19260613`), violating RFC 5545 which requires DTEND to be exclusive (the day after the event ends).
 
