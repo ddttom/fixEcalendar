@@ -2,7 +2,6 @@
 
 import { Command } from 'commander';
 import * as path from 'path';
-import * as fs from 'fs';
 import fg from 'fast-glob';
 import { PSTParser } from './parser/pst-parser';
 import { CalendarExtractor } from './parser/calendar-extractor';
