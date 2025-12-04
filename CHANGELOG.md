@@ -13,10 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full RFC 5545 compliant iCalendar generation from CSV data
 - Proper CSV parsing with quoted field handling
 - Date/time conversion from CSV format to CalendarEntry objects
+- Deduplication in CSV export to prevent duplicates after date normalization
 
 ### Changed
 - `export-to-ical.ts` now reads from CSV file instead of database
 - Simplified workflow: export to CSV for analysis, then convert to ICS for import
+
+### Fixed
+- Duplicate entries in CSV export caused by birthday/anniversary date normalization
+- CSV export now tracks unique entries by subject + date + time
+- Reports number of duplicates removed during export
 
 ## [1.2.1] - 2025-12-04
 
