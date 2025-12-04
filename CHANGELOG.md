@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Two-step export workflow documentation (Database → CSV → ICS)
 - Visual workflow diagrams in README showing complete export pipeline
 - Automatic deduplication reporting with statistics
+- Basic test suite to satisfy Jest test runner
 
 ### Changed
 - `export-to-ical.ts` now reads from CSV file instead of database
@@ -24,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README restructured with prominent workflow sections at top
 - Export workflows now clearly documented in Quick Start section
 - Updated `.gitignore` to allow `package-lock.json` for CI/CD
+- CI/CD now tests only Node.js 18.x and 20.x (removed 16.x due to dependency requirements)
+- Updated `package.json` engines field to require Node.js 18.18.0 or higher
 
 ### Fixed
 - Duplicate entries in CSV export caused by birthday/anniversary date normalization
@@ -31,6 +34,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reports number of duplicates removed during export (e.g., "49 duplicates removed")
 - GitHub Actions CI/CD failures due to missing `package-lock.json`
 - Dependency caching now working in all CI workflows
+- Node 16.x compatibility issues with modern ESLint and better-sqlite3
+- Missing test files causing Jest to fail in CI
+- Unused `fs` imports in index files causing ESLint errors
+- **Critical: Invalid RRULE format causing silent Google Calendar import failures**
+  - Yearly recurrence now correctly uses `FREQ=YEARLY` without `INTERVAL=12`
+  - Outlook stores yearly events as 12-month intervals, now properly converted to iCalendar standard
+  - Added automatic cleanup in `export-to-ical.ts` for existing CSV data with invalid intervals
+  - ICS files now import successfully into Google Calendar and other RFC 5545 compliant applications
 
 ## [1.2.1] - 2025-12-04
 
