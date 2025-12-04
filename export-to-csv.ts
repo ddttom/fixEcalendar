@@ -7,6 +7,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import Database from 'better-sqlite3';
+import { formatDescription } from './src/utils/text-formatter';
 
 function escapeCSV(value: any): string {
   if (value === null || value === undefined) {
@@ -161,7 +162,7 @@ async function exportToCSV() {
       endDateStr,
       endTimeStr,
       entry.location || '',
-      entry.description || '',
+      formatDescription(entry.description),
       entry.organizer || '',
       isAllDayEvent ? 'Yes' : 'No',
       entry.importance || 'normal',

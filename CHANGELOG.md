@@ -1,0 +1,96 @@
+# Changelog
+
+All notable changes to fixECalendar will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.2.1] - 2025-12-04
+
+### Added
+- Created centralized text formatting utility (`src/utils/text-formatter.ts`)
+- `formatDescription()` function for consistent description formatting across exports
+
+### Changed
+- Description fields now automatically cleaned and formatted in all exports
+- Whitespace trimmed from both ends of descriptions
+- Multiple consecutive line breaks (3 or more) reduced to exactly 2 for readability
+- Description fields truncated to 79 characters maximum
+
+### Fixed
+- Excessive whitespace in description fields across CSV and ICS exports
+- Unwieldy description text that made exports difficult to read
+
+## [1.2.0] - 2025-12-03
+
+### Added
+- CSV export functionality via `export-to-csv.ts` script
+- Comprehensive RRULE recurrence pattern support using pst-extractor's RecurrencePattern class
+- Support for DAILY, WEEKLY, MONTHLY, YEARLY frequencies with ordinals, intervals, and counts
+- Birthday/anniversary subject standardization to `(dd/mm/yyyy)` format
+
+### Changed
+- All-day events now use proper `VALUE=DATE` format in iCal exports
+- CSV export properly normalizes all-day event dates to remove UTC timezone offsets
+
+### Fixed
+- All-day event timezone handling - birthdays/anniversaries now display correctly as single-day events (no more 2-day spans)
+- CSV export now properly quotes all fields for correct Excel import
+- Leading zeros preserved in CSV exports
+- Dates not auto-formatted incorrectly in Excel
+- Multi-line descriptions and special characters handled correctly
+- Commas within field data don't break CSV structure
+
+## [1.1.0] - 2025-12-03
+
+### Added
+- SQLite database for intermediate storage of calendar entries
+- Automatic deduplication of calendar entries based on UID, subject, times, location, and organizer
+- `--database` option to specify custom database location
+- `--clear-db` option to clear database before processing
+- `--db-stats` option to view database statistics
+- `--no-dedupe` option to disable deduplication (not recommended)
+- Processing statistics and logging for large file handling
+
+### Changed
+- Optimized for very large PST files (6GB+)
+- Improved memory efficiency - uses ~500MB-1GB instead of loading entire file
+- Processing speed increased to ~1,000-2,000 entries/second
+
+### Fixed
+- Memory issues when processing large PST files
+- Duplicate entries when re-processing same files
+- Inability to incrementally add PST files over time
+
+## [1.0.0] - 2025-12-03
+
+### Added
+- Initial release
+- PST to iCal (.ics) conversion
+- Batch processing of multiple PST files
+- Glob pattern support for file discovery
+- Merge mode to combine multiple calendars
+- Full property mapping (attendees, locations, descriptions, reminders, etc.)
+- Support for all-day events
+- Timezone preservation
+- Command-line interface with comprehensive options
+- TypeScript implementation with type safety
+- Support for both ANSI and Unicode PST formats
+- `--include-private` flag to include private/confidential appointments
+- `--no-recurring` flag to exclude recurring appointments
+- Date range filtering with `--start-date` and `--end-date`
+- Verbose logging with `--verbose` flag
+- Custom calendar naming with `--name` option
+- Timezone setting with `--timezone` option
+
+### Dependencies
+- pst-extractor - Pure JavaScript PST file parser
+- ical-generator - iCalendar file generation
+- commander - Command-line interface framework
+- fast-glob - Fast file pattern matching
+- better-sqlite3 - Fast, synchronous SQLite3 database
+
+[1.2.1]: https://github.com/ddttom/fixEcalendar/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/ddttom/fixEcalendar/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/ddttom/fixEcalendar/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/ddttom/fixEcalendar/releases/tag/v1.0.0

@@ -9,6 +9,7 @@ import {
 } from 'ical-generator';
 import { CalendarEntry } from '../parser/types';
 import { logger } from '../utils/logger';
+import { formatDescription } from '../utils/text-formatter';
 
 export class PropertyMapper {
   private standardizeBirthdaySubject(
@@ -100,7 +101,7 @@ export class PropertyMapper {
       start: startTime,
       end: endTime,
       summary: standardizedSubject,
-      description: entry.description,
+      description: formatDescription(entry.description),
       location: entry.location,
       id: entry.uid,
     };

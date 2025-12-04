@@ -303,6 +303,12 @@ This creates `calendar-export.csv` with the following columns:
 - Multi-line descriptions and special characters are handled correctly
 - Commas within field data don't break the CSV structure
 
+**Description Field Formatting:** Description fields are automatically cleaned and formatted for optimal display:
+- Whitespace trimmed from both ends
+- Multiple consecutive line breaks (3+) reduced to 2 for better readability
+- Truncated to 79 characters to prevent unwieldy text in exports
+- Applied consistently across all export formats (CSV and ICS)
+
 **All-Day Event Handling:** The CSV export properly handles all-day events (birthdays, anniversaries) by normalizing dates to remove timezone offsets, ensuring single-day events display correctly.
 
 **Subject Standardization:** Birthday and anniversary subjects are automatically standardized to include dates in `(dd/mm/yyyy)` format. For example:
@@ -467,7 +473,8 @@ fixEcalendar/
 │   ├── utils/
 │   │   ├── logger.ts            # Logging
 │   │   ├── validators.ts        # Validation
-│   │   └── error-handler.ts    # Error handling
+│   │   ├── error-handler.ts    # Error handling
+│   │   └── text-formatter.ts   # Text formatting utilities
 │   └── config/
 │       └── constants.ts         # Constants
 ├── .fixecalendar.db            # SQLite database (generated)
@@ -617,6 +624,15 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Discussions**: https://github.com/ddttom/fixEcalendar/discussions
 
 ## Changelog
+
+### v1.2.1 (2025-12-04)
+
+- **Enhancement**: Added description field formatting for all exports
+- **Fix**: Description fields now trimmed of excessive whitespace
+- **Fix**: Multiple consecutive line breaks (3+) reduced to 2 for better readability
+- **Fix**: Description fields truncated to 79 characters to prevent unwieldy text
+- **Enhancement**: Created centralized text formatting utility (`src/utils/text-formatter.ts`)
+- Applied consistent formatting across CSV and ICS exports
 
 ### v1.2.0 (2025-12-03)
 
