@@ -5,10 +5,7 @@ import { logger } from '../utils/logger';
 import { RecurrencePattern } from 'pst-extractor/dist/RecurrencePattern.class';
 
 export class CalendarExtractor {
-  async extractFromFolder(
-    folder: any,
-    options: ExtractionOptions = {}
-  ): Promise<CalendarEntry[]> {
+  async extractFromFolder(folder: any, options: ExtractionOptions = {}): Promise<CalendarEntry[]> {
     const entries: CalendarEntry[] = [];
     const errors: string[] = [];
 
@@ -54,10 +51,7 @@ export class CalendarExtractor {
 
       return entries;
     } catch (error) {
-      throw new PSTParsingError(
-        'Failed to extract calendar entries',
-        error as Error
-      );
+      throw new PSTParsingError('Failed to extract calendar entries', error as Error);
     }
   }
 
@@ -66,15 +60,11 @@ export class CalendarExtractor {
     const messageClass = item.messageClass;
     return (
       messageClass &&
-      (messageClass.startsWith('IPM.Appointment') ||
-        messageClass.startsWith('IPM.Schedule'))
+      (messageClass.startsWith('IPM.Appointment') || messageClass.startsWith('IPM.Schedule'))
     );
   }
 
-  private parseAppointment(
-    appointment: any,
-    options: ExtractionOptions
-  ): CalendarEntry | null {
+  private parseAppointment(appointment: any, options: ExtractionOptions): CalendarEntry | null {
     try {
       // Get basic properties
       const subject = appointment.subject || '(No Subject)';
@@ -220,8 +210,10 @@ export class CalendarExtractor {
       const end = appointment.endTime;
 
       if (start && end) {
-        const isStartMidnight = start.getHours() === 0 && start.getMinutes() === 0 && start.getSeconds() === 0;
-        const isEndMidnight = end.getHours() === 0 && end.getMinutes() === 0 && end.getSeconds() === 0;
+        const isStartMidnight =
+          start.getHours() === 0 && start.getMinutes() === 0 && start.getSeconds() === 0;
+        const isEndMidnight =
+          end.getHours() === 0 && end.getMinutes() === 0 && end.getSeconds() === 0;
 
         if (isStartMidnight && isEndMidnight) {
           return true;
@@ -292,19 +284,32 @@ export class CalendarExtractor {
       // Parse the recurrence pattern text to extract additional details
       if (recurrencePattern) {
         // Parse day of week from patterns like "every Monday" or "the second Monday"
-        const dayMatch = recurrencePattern.match(/(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i);
+        const dayMatch = recurrencePattern.match(
+          /(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i
+        );
         if (dayMatch) {
           const dayMap: { [key: string]: string } = {
-            'monday': 'MO', 'tuesday': 'TU', 'wednesday': 'WE', 'thursday': 'TH',
-            'friday': 'FR', 'saturday': 'SA', 'sunday': 'SU'
+            monday: 'MO',
+            tuesday: 'TU',
+            wednesday: 'WE',
+            thursday: 'TH',
+            friday: 'FR',
+            saturday: 'SA',
+            sunday: 'SU',
           };
           const day = dayMap[dayMatch[1].toLowerCase()];
           if (day) {
             // Check for ordinal (first, second, third, fourth, last)
-            const ordinalMatch = recurrencePattern.match(/(first|second|third|fourth|last)\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i);
+            const ordinalMatch = recurrencePattern.match(
+              /(first|second|third|fourth|last)\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i
+            );
             if (ordinalMatch) {
               const ordinalMap: { [key: string]: string } = {
-                'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'last': '-1'
+                first: '1',
+                second: '2',
+                third: '3',
+                fourth: '4',
+                last: '-1',
               };
               const ordinal = ordinalMap[ordinalMatch[1].toLowerCase()];
               rruleParts.push(`BYDAY=${ordinal}${day}`);
@@ -392,12 +397,16 @@ export class CalendarExtractor {
             const days = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
             const selectedDays = days.filter((_, i) => monthNth.weekdays[i]);
             const nthMap: { [key: number]: string } = {
-              1: '1', 2: '2', 3: '3', 4: '4', 5: '-1' // Last = -1
+              1: '1',
+              2: '2',
+              3: '3',
+              4: '4',
+              5: '-1', // Last = -1
             };
             const ordinal = nthMap[monthNth.nth] || '1';
 
             if (selectedDays.length > 0) {
-              const byDayParts = selectedDays.map(day => `${ordinal}${day}`);
+              const byDayParts = selectedDays.map((day) => `${ordinal}${day}`);
               rruleParts.push(`BYDAY=${byDayParts.join(',')}`);
             }
           }
@@ -507,7 +516,7 @@ export class CalendarExtractor {
       if (entryId) {
         return entryId;
       }
-    } catch (error) {
+    } catch (_error) {
       // Ignore
     }
 

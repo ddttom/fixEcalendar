@@ -98,10 +98,7 @@ async function convertSingleFile(
   }
 }
 
-async function convertMultipleFiles(
-  inputPaths: string[],
-  options: CLIOptions
-): Promise<void> {
+async function convertMultipleFiles(inputPaths: string[], options: CLIOptions): Promise<void> {
   logger.info(`Processing ${inputPaths.length} PST files...`);
 
   const results: BatchConversionResult = {
@@ -302,12 +299,16 @@ async function main() {
         } else {
           // Multiple files
           if (options.output) {
-            logger.warn('Warning: --output option ignored for multiple files. Use --output-dir instead.');
+            logger.warn(
+              'Warning: --output option ignored for multiple files. Use --output-dir instead.'
+            );
           }
 
           // Ensure output directory is specified for non-merge batch processing
           if (!options.merge && !options.outputDir) {
-            logger.info('No output directory specified. Output files will be created next to input files.');
+            logger.info(
+              'No output directory specified. Output files will be created next to input files.'
+            );
           }
 
           await convertMultipleFiles(inputFiles, options);

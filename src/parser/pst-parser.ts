@@ -20,15 +20,14 @@ export class PSTParser {
       if (errorMsg.includes('findBtreeItem')) {
         throw new PSTParsingError(
           `Failed to open PST file: ${filePath}\n` +
-          `The PST file may be corrupted, encrypted, or in an unsupported format.\n` +
-          `Error details: ${errorMsg}`,
+            `The PST file may be corrupted, encrypted, or in an unsupported format.\n` +
+            `Error details: ${errorMsg}`,
           error as Error
         );
       }
 
       throw new PSTParsingError(
-        `Failed to open PST file: ${filePath}\n` +
-        `Error: ${errorMsg}`,
+        `Failed to open PST file: ${filePath}\n` + `Error: ${errorMsg}`,
         error as Error
       );
     }
@@ -44,10 +43,7 @@ export class PSTParser {
       const rootFolder = this.pstFile.getRootFolder();
       return this.findCalendarFolder(rootFolder);
     } catch (error) {
-      throw new PSTParsingError(
-        'Failed to locate calendar folder',
-        error as Error
-      );
+      throw new PSTParsingError('Failed to locate calendar folder', error as Error);
     }
   }
 
@@ -56,9 +52,7 @@ export class PSTParser {
     const displayName = folder.displayName;
     logger.debug(`Checking folder: ${displayName}`);
 
-    if (CALENDAR_FOLDER_NAMES.some(name =>
-      displayName?.toLowerCase() === name.toLowerCase()
-    )) {
+    if (CALENDAR_FOLDER_NAMES.some((name) => displayName?.toLowerCase() === name.toLowerCase())) {
       logger.info(`Found calendar folder: ${displayName}`);
       return folder;
     }

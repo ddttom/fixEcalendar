@@ -1,6 +1,6 @@
 {
   "name": "fixecalendar",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Convert calendar entries from Microsoft Outlook PST files to iCalendar (iCal/ICS) format",
   "main": "dist/index.js",
   "bin": {
@@ -27,8 +27,16 @@
     "converter",
     "cli"
   ],
-  "author": "",
+  "author": "Tom Cranstoun",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ddttom/fixEcalendar.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ddttom/fixEcalendar/issues"
+  },
+  "homepage": "https://github.com/ddttom/fixEcalendar#readme",
   "dependencies": {
     "pst-extractor": "^1.7.3",
     "ical-generator": "^7.2.0",

@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/ddttom/fixEcalendar/blob/main/README.md
+    about: Read the comprehensive documentation and troubleshooting guide
+  - name: Discussions
+    url: https://github.com/ddttom/fixEcalendar/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: Security Issue
+    url: https://github.com/ddttom/fixEcalendar/security/advisories/new
+    about: Report security vulnerabilities privately (DO NOT use public issues)

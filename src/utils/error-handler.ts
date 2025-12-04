@@ -1,5 +1,8 @@
 export class PSTParsingError extends Error {
-  constructor(message: string, public cause?: Error) {
+  constructor(
+    message: string,
+    public cause?: Error
+  ) {
     super(message);
     this.name = 'PSTParsingError';
     Error.captureStackTrace(this, this.constructor);
@@ -7,7 +10,10 @@ export class PSTParsingError extends Error {
 }
 
 export class ConversionError extends Error {
-  constructor(message: string, public cause?: Error) {
+  constructor(
+    message: string,
+    public cause?: Error
+  ) {
     super(message);
     this.name = 'ConversionError';
     Error.captureStackTrace(this, this.constructor);

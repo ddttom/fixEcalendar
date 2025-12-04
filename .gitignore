@@ -56,3 +56,9 @@ temp/
 *.db-shm
 *.db-wal
 .fixecalendar.db*
+
+# Generated calendar exports
+*.ics
+*.csv
+calendar-*.ics
+*-export.csv

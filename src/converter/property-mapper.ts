@@ -1,10 +1,21 @@
 import type { ICalEventData, ICalAttendeeData } from 'ical-generator';
-import { ICalEventStatus, ICalEventBusyStatus, ICalAttendeeRole, ICalAlarmType, ICalEventClass, ICalEventRepeatingFreq } from 'ical-generator';
+import {
+  ICalEventStatus,
+  ICalEventBusyStatus,
+  ICalAttendeeRole,
+  ICalAlarmType,
+  ICalEventClass,
+  ICalEventRepeatingFreq,
+} from 'ical-generator';
 import { CalendarEntry } from '../parser/types';
 import { logger } from '../utils/logger';
 
 export class PropertyMapper {
-  private standardizeBirthdaySubject(subject: string, startDate: Date, recurrencePattern: string | undefined): string {
+  private standardizeBirthdaySubject(
+    subject: string,
+    startDate: Date,
+    recurrencePattern: string | undefined
+  ): string {
     // Check if this is a birthday/anniversary
     const subjectLower = subject.toLowerCase();
     if (!subjectLower.includes('birthday') && !subjectLower.includes('anniversary')) {
@@ -72,7 +83,9 @@ export class PropertyMapper {
 
       // Create new dates at UTC midnight using Date.UTC
       // This ensures VALUE=DATE formatting shows the correct date
-      startTime = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()));
+      startTime = new Date(
+        Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
+      );
       endTime = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()));
     }
 
@@ -107,9 +120,7 @@ export class PropertyMapper {
 
     // Map attendees
     if (entry.attendees && entry.attendees.length > 0) {
-      eventData.attendees = entry.attendees
-        .map(a => this.mapAttendee(a))
-        .filter(a => a.email);
+      eventData.attendees = entry.attendees.map((a) => this.mapAttendee(a)).filter((a) => a.email);
     }
 
     // Map status
@@ -299,22 +310,28 @@ export class PropertyMapper {
           case 'UNTIL':
             // Parse date string (format: 20240101T000000Z)
             rruleObj.until = new Date(
-              value.substring(0, 4) + '-' +
-              value.substring(4, 6) + '-' +
-              value.substring(6, 8) + 'T' +
-              value.substring(9, 11) + ':' +
-              value.substring(11, 13) + ':' +
-              value.substring(13, 15) + 'Z'
+              value.substring(0, 4) +
+                '-' +
+                value.substring(4, 6) +
+                '-' +
+                value.substring(6, 8) +
+                'T' +
+                value.substring(9, 11) +
+                ':' +
+                value.substring(11, 13) +
+                ':' +
+                value.substring(13, 15) +
+                'Z'
             );
             break;
           case 'BYDAY':
             rruleObj.byDay = value.split(',');
             break;
           case 'BYMONTHDAY':
-            rruleObj.byMonthDay = value.split(',').map(d => parseInt(d, 10));
+            rruleObj.byMonthDay = value.split(',').map((d) => parseInt(d, 10));
             break;
           case 'BYMONTH':
-            rruleObj.byMonth = value.split(',').map(m => parseInt(m, 10));
+            rruleObj.byMonth = value.split(',').map((m) => parseInt(m, 10));
             break;
           case 'BYSETPOS':
             rruleObj.bySetPos = parseInt(value, 10);
@@ -323,7 +340,7 @@ export class PropertyMapper {
       }
 
       return rruleObj;
-    } catch (error) {
+    } catch (_error) {
       logger.warn(`Failed to parse RRULE string: ${rruleString}`);
       return { freq: ICalEventRepeatingFreq.DAILY }; // Fallback
     }

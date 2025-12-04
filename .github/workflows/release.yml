@@ -1,0 +1,157 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.3.0)'
+        required: true
+        type: string
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests
+      run: npm test
+
+    - name: Run linter
+      run: npm run lint
+
+    - name: Build
+      run: npm run build
+
+    - name: Get version from package.json
+      id: package_version
+      run: |
+        VERSION=$(node -p "require('./package.json').version")
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Package version: $VERSION"
+
+    - name: Check if tag exists
+      id: check_tag
+      run: |
+        VERSION=${{ steps.package_version.outputs.version }}
+        if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create Git tag
+      if: steps.check_tag.outputs.exists == 'false' && github.event_name == 'workflow_dispatch'
+      run: |
+        VERSION=${{ steps.package_version.outputs.version }}
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a "v$VERSION" -m "Release v$VERSION"
+        git push origin "v$VERSION"
+
+    - name: Extract changelog for this version
+      id: changelog
+      run: |
+        VERSION=${{ steps.package_version.outputs.version }}
+        echo "Extracting changelog for version $VERSION"
+        # Extract changelog between version headers
+        CHANGELOG=$(awk "/^### v$VERSION /,/^### v[0-9]/" README.md | sed '1d;$d' || echo "See README.md for changelog")
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create Release Archive
+      run: |
+        mkdir -p release
+        cp -r dist release/
+        cp package.json package-lock.json README.md LICENSE release/
+        tar -czf fixecalendar-${{ steps.package_version.outputs.version }}.tar.gz -C release .
+        zip -r fixecalendar-${{ steps.package_version.outputs.version }}.zip release/
+
+    - name: Generate Release Notes
+      id: release_notes
+      run: |
+        VERSION=${{ steps.package_version.outputs.version }}
+        cat > release_notes.md << 'EOF'
+        ## fixEcalendar v$VERSION
+
+        ### Changes
+        ${{ steps.changelog.outputs.changelog }}
+
+        ### Installation
+
+        #### From Source
+        ```bash
+        # Download and extract the archive
+        tar -xzf fixecalendar-$VERSION.tar.gz
+        cd release
+        npm install --production
+        npm run build
+        ```
+
+        #### From Repository
+        ```bash
+        git clone https://github.com/ddttom/fixEcalendar.git
+        cd fixEcalendar
+        git checkout v$VERSION
+        npm install
+        npm run build
+        ```
+
+        ### Usage
+        See [README.md](https://github.com/ddttom/fixEcalendar/blob/v$VERSION/README.md) for complete documentation.
+
+        ### Requirements
+        - Node.js 16.0.0 or higher
+
+        ### Checksums
+        See release assets for checksums.
+        EOF
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.package_version.outputs.version }}
+        name: Release v${{ steps.package_version.outputs.version }}
+        body_path: release_notes.md
+        draft: false
+        prerelease: false
+        files: |
+          fixecalendar-${{ steps.package_version.outputs.version }}.tar.gz
+          fixecalendar-${{ steps.package_version.outputs.version }}.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Generate checksums
+      run: |
+        sha256sum fixecalendar-${{ steps.package_version.outputs.version }}.tar.gz > checksums.txt
+        sha256sum fixecalendar-${{ steps.package_version.outputs.version }}.zip >> checksums.txt
+        cat checksums.txt
+
+    - name: Upload checksums to release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.package_version.outputs.version }}
+        files: checksums.txt
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -95,9 +95,7 @@ async function processWithDatabase(
       }
     }
 
-    logger.success(
-      `✓ Processed ${inputPath}: ${added} added, ${skipped} duplicates skipped`
-    );
+    logger.success(`✓ Processed ${inputPath}: ${added} added, ${skipped} duplicates skipped`);
 
     // Log to database
     database.logProcessing(inputPath, entries.length, added, skipped);
@@ -296,10 +294,8 @@ async function main() {
 
           // Export to iCal if output specified
           if (options.output || options.merge) {
-            const outputPath = options.output || path.join(
-              options.outputDir || '.',
-              'merged-calendar.ics'
-            );
+            const outputPath =
+              options.output || path.join(options.outputDir || '.', 'merged-calendar.ics');
 
             await exportFromDatabase(database, outputPath, options);
           } else {

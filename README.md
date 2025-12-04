@@ -50,7 +50,7 @@ After installation, you can use the `fixECalendar` command globally.
 ### Local Installation
 
 ```bash
-git clone https://github.com/yourusername/fixEcalendar.git
+git clone https://github.com/ddttom/fixEcalendar.git
 cd fixEcalendar
 npm install
 npm run build
@@ -428,7 +428,7 @@ For 6.5GB PST files:
 ### Setup
 
 ```bash
-git clone https://github.com/yourusername/fixEcalendar.git
+git clone https://github.com/ddttom/fixEcalendar.git
 cd fixEcalendar
 npm install
 ```
@@ -613,8 +613,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- **Issues**: https://github.com/yourusername/fixEcalendar/issues
-- **Discussions**: https://github.com/yourusername/fixEcalendar/discussions
+- **Issues**: https://github.com/ddttom/fixEcalendar/issues
+- **Discussions**: https://github.com/ddttom/fixEcalendar/discussions
 
 ## Changelog
 

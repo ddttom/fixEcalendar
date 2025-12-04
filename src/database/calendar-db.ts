@@ -223,7 +223,7 @@ export class CalendarDatabase {
     `);
 
     const rows = stmt.all() as any[];
-    return rows.map(row => this.rowToEntry(row));
+    return rows.map((row) => this.rowToEntry(row));
   }
 
   /**
@@ -248,7 +248,7 @@ export class CalendarDatabase {
     const stmt = this.db.prepare(query);
     const rows = stmt.all(...params) as any[];
 
-    return rows.map(row => this.rowToEntry(row));
+    return rows.map((row) => this.rowToEntry(row));
   }
 
   /**
@@ -260,7 +260,7 @@ export class CalendarDatabase {
     `);
 
     const rows = stmt.all(sourceFile) as any[];
-    return rows.map(row => this.rowToEntry(row));
+    return rows.map((row) => this.rowToEntry(row));
   }
 
   /**
@@ -275,7 +275,9 @@ export class CalendarDatabase {
     const totalStmt = this.db.prepare('SELECT COUNT(*) as count FROM calendar_entries');
     const total = (totalStmt.get() as { count: number }).count;
 
-    const sourceStmt = this.db.prepare('SELECT COUNT(DISTINCT source_file) as count FROM calendar_entries');
+    const sourceStmt = this.db.prepare(
+      'SELECT COUNT(DISTINCT source_file) as count FROM calendar_entries'
+    );
     const sources = (sourceStmt.get() as { count: number }).count;
 
     const rangeStmt = this.db.prepare(`
@@ -292,7 +294,7 @@ export class CalendarDatabase {
     const bySource = bySourceStmt.all() as Array<{ source_file: string; count: number }>;
 
     const entriesBySource = new Map<string, number>();
-    bySource.forEach(row => {
+    bySource.forEach((row) => {
       entriesBySource.set(row.source_file, row.count);
     });
 
@@ -323,14 +325,7 @@ export class CalendarDatabase {
       ) VALUES (?, ?, ?, ?, ?, ?, 'completed')
     `);
 
-    stmt.run(
-      sourceFile,
-      entriesFound,
-      entriesAdded,
-      entriesSkipped,
-      Date.now(),
-      Date.now()
-    );
+    stmt.run(sourceFile, entriesFound, entriesAdded, entriesSkipped, Date.now(), Date.now());
   }
 
   /**
@@ -359,13 +354,14 @@ export class CalendarDatabase {
       location: row.location || undefined,
       description: row.description || undefined,
       organizer: row.organizer || undefined,
-      attendees: attendeeRows.length > 0
-        ? attendeeRows.map(a => ({
-            name: a.name || undefined,
-            email: a.email || undefined,
-            type: a.type || undefined,
-          }))
-        : undefined,
+      attendees:
+        attendeeRows.length > 0
+          ? attendeeRows.map((a) => ({
+              name: a.name || undefined,
+              email: a.email || undefined,
+              type: a.type || undefined,
+            }))
+          : undefined,
       isAllDay: row.is_all_day === 1,
       isRecurring: row.is_recurring === 1,
       recurrencePattern: row.recurrence_pattern || undefined,

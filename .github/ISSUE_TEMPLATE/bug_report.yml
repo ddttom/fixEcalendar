@@ -1,0 +1,139 @@
+name: Bug Report
+description: Report a bug or issue with fixEcalendar
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out this form as completely as possible.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe the bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Run command '...'
+        2. With PST file '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen.
+      placeholder: Describe what should have happened...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened.
+      placeholder: Describe what actually happened...
+    validations:
+      required: true
+
+  - type: textarea
+    id: error
+    attributes:
+      label: Error Message
+      description: If applicable, paste the complete error message and stack trace.
+      placeholder: Paste error message here...
+      render: shell
+
+  - type: input
+    id: version
+    attributes:
+      label: fixEcalendar Version
+      description: Run `npm list fixecalendar` or check package.json
+      placeholder: e.g., 1.2.0
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js Version
+      description: Run `node --version`
+      placeholder: e.g., v20.10.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you using?
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS Version
+      description: Specific version of your operating system
+      placeholder: e.g., Windows 11, macOS 14.2, Ubuntu 22.04
+
+  - type: dropdown
+    id: pst-format
+    attributes:
+      label: PST File Format
+      description: If known, what format is your PST file?
+      options:
+        - Unicode (PST 2003+)
+        - ANSI (PST 97-2002)
+        - Unknown
+        - Not applicable
+
+  - type: input
+    id: pst-size
+    attributes:
+      label: PST File Size
+      description: Approximate size of the PST file
+      placeholder: e.g., 6.5 GB, 500 MB
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command Used
+      description: The exact command you ran (remove any sensitive file paths)
+      placeholder: fixECalendar input.pst --output output.ics
+      render: shell
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context, screenshots, or information about the problem.
+      placeholder: Add any other context here...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues to avoid duplicates
+          required: true
+        - label: I am using the latest version of fixEcalendar
+          required: false
+        - label: I have checked the troubleshooting section in README.md
+          required: false

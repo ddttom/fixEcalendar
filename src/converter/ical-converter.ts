@@ -5,7 +5,12 @@ import { ConversionOptions, ConversionResult } from './types';
 import { PropertyMapper } from './property-mapper';
 import { ConversionError } from '../utils/error-handler';
 import { logger } from '../utils/logger';
-import { DEFAULT_CALENDAR_NAME, DEFAULT_TIMEZONE, APP_NAME, APP_VERSION } from '../config/constants';
+import {
+  DEFAULT_CALENDAR_NAME,
+  DEFAULT_TIMEZONE,
+  APP_NAME,
+  APP_VERSION,
+} from '../config/constants';
 
 export class ICalConverter {
   private mapper: PropertyMapper;
@@ -14,10 +19,7 @@ export class ICalConverter {
     this.mapper = new PropertyMapper();
   }
 
-  convert(
-    entries: CalendarEntry[],
-    options: ConversionOptions = {}
-  ): ICalCalendar {
+  convert(entries: CalendarEntry[], options: ConversionOptions = {}): ICalCalendar {
     try {
       logger.debug(`Converting ${entries.length} calendar entries to iCal format`);
 
@@ -50,17 +52,11 @@ export class ICalConverter {
 
       return calendar;
     } catch (error) {
-      throw new ConversionError(
-        'Failed to convert calendar entries to iCal',
-        error as Error
-      );
+      throw new ConversionError('Failed to convert calendar entries to iCal', error as Error);
     }
   }
 
-  async saveToFile(
-    calendar: ICalCalendar,
-    outputPath: string
-  ): Promise<ConversionResult> {
+  async saveToFile(calendar: ICalCalendar, outputPath: string): Promise<ConversionResult> {
     try {
       logger.debug(`Saving iCal to file: ${outputPath}`);
 
@@ -78,10 +74,7 @@ export class ICalConverter {
         outputPath,
       };
     } catch (error) {
-      throw new ConversionError(
-        `Failed to save iCal file: ${outputPath}`,
-        error as Error
-      );
+      throw new ConversionError(`Failed to save iCal file: ${outputPath}`, error as Error);
     }
   }
 
