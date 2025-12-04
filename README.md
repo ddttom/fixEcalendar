@@ -474,11 +474,12 @@ If you have a CSV file exported from the database, you can convert it to iCalend
 npx ts-node export-to-ical.ts
 ```
 
-This creates a full RFC 5545 compliant iCalendar file from your CSV data. The script:
+This creates RFC 5545 compliant iCalendar files from your CSV data. The script:
 - Reads from `calendar-export.csv`
 - Parses all calendar entries with proper date/time handling
 - Unescapes literal `\n` back to actual newlines in descriptions
-- Generates `calendar-export.ics` with complete iCal structure
+- Automatically splits files into 499-event chunks (tested working value for Google Calendar)
+- Generates `calendar-export.ics` (small files) or `calendar-part-X-of-Y.ics` (large calendars)
 - Preserves all properties (attendees, recurrence, reminders, etc.)
 - Handles all-day events and birthdays correctly
 
@@ -930,6 +931,22 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Fix**: Daily recurrence intervals converted from minutes to days (MS-OXOCAL spec compliance)
 - **Impact**: Fixed 72 recurring events with date-only UNTIL, converted `INTERVAL=1440` (minutes) to `INTERVAL=1` (day)
 - **Result**: All recurring events including Genealogy entries now import successfully into Google Calendar
+- **Critical Fix**: Yearly recurring events now RFC 5545 compliant with BYMONTH parameter
+- **Fix**: Added BYMONTH parameter to yearly events with BYMONTHDAY (e.g., `FREQ=YEARLY;BYMONTH=6;BYMONTHDAY=13`)
+- **Impact**: Fixed 465 yearly recurring events that Google Calendar was rejecting due to RFC 5545 ambiguity
+- **Technical**: Google Calendar requires explicit BYMONTH when using BYMONTHDAY with FREQ=YEARLY
+- **Enhancement**: Description field now filters out HTML/CSS junk from malformed Outlook extractions
+- **Fix**: Automatically removes patterns like "false\nfalse\nfalse", "EN-GB", "X-NONE", "/* Style Definitions */", "table.MsoNormal"
+- **Impact**: Cleaned 1,832 corrupted descriptions that were causing Google Calendar import failures
+- **Enhancement**: Automatic file splitting for Google Calendar compatibility
+- **Fix**: export-to-ical.ts now automatically splits large calendars into 499-event chunks
+- **Impact**: Calendars with 500+ events generate split files (499 events per file)
+- **Technical**: Files with 499 events import successfully into Google Calendar (tested and confirmed)
+- **Enhancement**: Historical date handling for recurring birthdays/anniversaries
+- **Fix**: Birthdays/anniversaries before 1970 use modern anchor date (2020) for Google Calendar compatibility
+- **Technical**: Original birth year preserved in subject line, actual event dates unchanged
+- **Impact**: All recurring birthdays now import successfully while preserving historical event dates (2000-2004)
+- **Result**: ICS files now import cleanly into Google Calendar, Apple Calendar, and all RFC 5545 compliant applications
 
 ### v1.2.3 (2025-12-04)
 

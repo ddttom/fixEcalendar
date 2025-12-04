@@ -122,7 +122,7 @@ export class CalendarExtractor {
         attendees: this.extractAttendees(appointment),
         isAllDay: this.isAllDayEvent(appointment),
         isRecurring,
-        recurrencePattern: isRecurring ? this.extractRecurrencePattern(appointment) : undefined,
+        recurrencePattern: isRecurring ? this.extractRecurrencePattern(appointment, startTime) : undefined,
         reminder: this.extractReminder(appointment),
         importance: this.mapImportance(appointment.importance),
         busyStatus: this.mapBusyStatus(appointment.busyStatus),
@@ -238,7 +238,7 @@ export class CalendarExtractor {
     return false;
   }
 
-  private extractRecurrencePattern(appointment: any): string | undefined {
+  private extractRecurrencePattern(appointment: any, startTime: Date): string | undefined {
     try {
       // Try to get the recurrence structure buffer
       const recurrenceStructure = appointment.recurrenceStructure;
@@ -252,7 +252,7 @@ export class CalendarExtractor {
         logger.debug(`Parsed recurrence pattern: ${JSON.stringify(pattern.toJSON())}`);
 
         // Build RRULE from parsed pattern
-        return this.buildRRuleFromPattern(pattern);
+        return this.buildRRuleFromPattern(pattern, startTime);
       }
 
       // Fallback: try using basic recurrence properties
@@ -352,10 +352,11 @@ export class CalendarExtractor {
     }
   }
 
-  private buildRRuleFromPattern(pattern: RecurrencePattern): string {
+  private buildRRuleFromPattern(pattern: RecurrencePattern, startTime: Date): string {
     const rruleParts: string[] = ['RRULE'];
 
     // Map frequency - RecurFrequency enum: Daily=8202, Weekly=8203, Monthly=8204, Yearly=8205
+    let isYearlyFrequency = false;
     switch (pattern.recurFrequency) {
       case 8202: // RecurFrequency.Daily
         rruleParts.push('FREQ=DAILY');
@@ -368,6 +369,7 @@ export class CalendarExtractor {
         break;
       case 8205: // RecurFrequency.Yearly
         rruleParts.push('FREQ=YEARLY');
+        isYearlyFrequency = true;
         break;
       default:
         rruleParts.push('FREQ=DAILY');
@@ -413,6 +415,12 @@ export class CalendarExtractor {
         case 4: // MonthEnd
           // patternTypeSpecific is the day number
           if (typeof pattern.patternTypeSpecific === 'number') {
+            // For yearly recurrence with BYMONTHDAY, RFC 5545 requires BYMONTH for clarity
+            // Extract month from startTime (1-12 where 1=January, 12=December)
+            if (isYearlyFrequency) {
+              const month = startTime.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+              rruleParts.push(`BYMONTH=${month}`);
+            }
             rruleParts.push(`BYMONTHDAY=${pattern.patternTypeSpecific}`);
           }
           break;

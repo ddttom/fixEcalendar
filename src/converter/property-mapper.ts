@@ -58,7 +58,10 @@ export class PropertyMapper {
 
     // Special handling for birthdays/anniversaries - force them to be all-day events with correct date
     const subject = (entry.subject || '').toLowerCase();
-    const isBirthdayOrAnniversary = subject.includes('birthday') || subject.includes('anniversary');
+    const isBirthdayOrAnniversary =
+      subject.includes('birthday') ||
+      subject.includes('bithday') ||  // Handle typos
+      subject.includes('anniversary');
 
     if (isBirthdayOrAnniversary && entry.recurrencePattern) {
       // Extract day from BYMONTHDAY in recurrence pattern
@@ -67,11 +70,17 @@ export class PropertyMapper {
         const correctDay = parseInt(byMonthDayMatch[1]);
         // Create date with the correct day from recurrence pattern
         const baseDate = new Date(entry.startTime);
-        const year = baseDate.getFullYear();
+        const originalYear = baseDate.getFullYear();
         const month = baseDate.getMonth();
 
-        startTime = new Date(year, month, correctDay);
-        endTime = new Date(year, month, correctDay + 1); // RFC 5545: DTEND is exclusive
+        // For recurring birthdays/anniversaries, use a modern year as the "anchor" date
+        // The original birth year is preserved in the subject line (e.g., "John's Birthday (15/03/1965)")
+        // This avoids Google Calendar's issues with very old recurring event start dates
+        // while maintaining accurate annual recurrence going forward
+        const modernYear = originalYear < 1970 ? 2020 : originalYear;
+
+        startTime = new Date(modernYear, month, correctDay);
+        endTime = new Date(modernYear, month, correctDay + 1); // RFC 5545: DTEND is exclusive
         isAllDay = true; // Force as all-day event
       }
     }

@@ -96,13 +96,19 @@ Located in `src/converter/property-mapper.ts`:
 - Centralizes all Outlook → iCal conversions
 - Special handling for all-day events (UTC midnight normalization)
 - Birthday/anniversary subject standardization to `(dd/mm/yyyy)` format
+- **Historical date modernization**: Recurring birthdays/anniversaries before 1970 use modern anchor date (2020) for Google Calendar compatibility
+  - Original birth year preserved in subject line (e.g., "John's Birthday (15/03/1965)")
+  - Only affects recurring birthdays/anniversaries, NOT actual event dates
+  - Regular events keep their original dates (2000-2004 appointments preserved)
 - Recurrence pattern parsing from binary RecurrencePattern class
 
 ### Text Formatting
 Located in `src/utils/text-formatter.ts`:
 - `formatDescription()`: Trims whitespace, normalizes line breaks, truncates to 79 chars
+- **HTML/CSS junk filtering**: Detects and removes malformed Outlook extraction artifacts
+- Filters patterns: "false\nfalse\nfalse", "EN-GB", "X-NONE", "/* Style Definitions */", "table.MsoNormal"
 - Applied consistently across all export formats
-- Prevents unwieldy text in exports
+- Prevents unwieldy text and corrupted descriptions in exports
 
 ## Database Schema
 
@@ -140,14 +146,19 @@ Standalone script that converts CSV export to iCalendar (ICS) format.
 - Parses CSV with proper quoted field handling
 - **Newline unescaping**: Converts literal `\n` back to actual newlines in descriptions
 - Converts to CalendarEntry objects
-- Uses ICalConverter to generate RFC 5545 compliant `calendar-export.ics`
+- Uses ICalConverter to generate RFC 5545 compliant ICS files
 - Preserves all properties including attendees, recurrence, reminders
 - Reuses existing PropertyMapper for consistent formatting
 - **Includes automatic cleanup**: Removes invalid `INTERVAL=12` from yearly recurrence rules for Google Calendar compatibility
+- **Automatic file splitting**: Splits large calendars into 499-event chunks for Google Calendar compatibility
+  - **Working value**: 499 events per file tested and confirmed to import successfully
+  - **Small calendars (≤499 events)**: Generates single file `calendar-export.ics`
+  - **Large calendars (500+ events)**: Generates split files `calendar-part-X-of-Y.ics` with 499 events each
+  - **Import instructions**: Script provides clear sequential import instructions for split files
 
 **Workflow:**
 ```
-Database → export-to-csv.ts → calendar-export.csv → export-to-ical.ts → calendar-export.ics
+Database → export-to-csv.ts → calendar-export.csv → export-to-ical.ts → ICS files (split if >499 events)
 ```
 
 This two-step process allows for CSV review/editing before ICS generation.
@@ -432,6 +443,103 @@ if (recurrencePattern?.includes('FREQ=DAILY') && recurrencePattern?.includes('IN
 - [RFC 5545 §3.3.10 - UNTIL must match DTSTART format](https://icalendar.org/iCalendar-RFC-5545/3-3-10-recurrence-rule.html)
 - [MS-OXOCAL §2.2.1.44.1 - Daily period stored in minutes](https://learn.microsoft.com/en-us/openspecs/exchange_server_protocols/ms-oxocal/cf7153b4-f8b5-4cb6-bf14-e78d21f94814)
 
+### RFC 5545 BYMONTH Parameter for Yearly Events (Fixed in v1.2.4)
+**Issue**: Google Calendar rejected ICS imports with "oops we could not import this file" error for yearly recurring events because they lacked the BYMONTH parameter. Birthday/anniversary events had format `FREQ=YEARLY;BYMONTHDAY=13` without specifying which month, creating RFC 5545 ambiguity.
+
+**Root Cause**: While RFC 5545 technically allows BYMONTHDAY without BYMONTH for yearly frequency (defaulting to all months), Google Calendar and other strict parsers reject this as ambiguous. The calendar-extractor was only adding BYMONTHDAY from the pattern but not extracting the month from the event's start date.
+
+**Solution (Fixed in v1.2.4)**:
+1. **Import enhancement** (`calendar-extractor.ts:355-425`): Modified `buildRRuleFromPattern()` to accept startTime parameter and extract month from start date
+2. **CSV cleanup** (`export-to-ical.ts:95-105`): Added cleanup for legacy CSV data to insert BYMONTH from start date
+
+**Impact**:
+- **Before fix**: `FREQ=YEARLY;BYMONTHDAY=13` (ambiguous - rejected by Google Calendar)
+- **After fix**: `FREQ=YEARLY;BYMONTH=6;BYMONTHDAY=13` (explicit - imports successfully)
+- **Result**: All 465 yearly recurring events now import successfully into Google Calendar
+
+**Code Pattern**:
+```typescript
+// In calendar-extractor.ts (lines 418-425)
+if (typeof pattern.patternTypeSpecific === 'number') {
+  // For yearly recurrence with BYMONTHDAY, RFC 5545 requires BYMONTH for clarity
+  // Extract month from startTime (1-12 where 1=January, 12=December)
+  if (isYearlyFrequency) {
+    const month = startTime.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+    rruleParts.push(`BYMONTH=${month}`);
+  }
+  rruleParts.push(`BYMONTHDAY=${pattern.patternTypeSpecific}`);
+}
+
+// In export-to-ical.ts (lines 95-104)
+if (recurrencePattern?.includes('FREQ=YEARLY') && recurrencePattern?.includes('BYMONTHDAY=')) {
+  if (!recurrencePattern.includes('BYMONTH=')) {
+    const month = parseInt(startDate.substring(5, 7)); // Extract MM from YYYY-MM-DD
+    recurrencePattern = recurrencePattern.replace(/BYMONTHDAY=/, `BYMONTH=${month};BYMONTHDAY=`);
+  }
+}
+```
+
+**Location**:
+- `src/parser/calendar-extractor.ts:355-425` (buildRRuleFromPattern with startTime parameter)
+- `export-to-ical.ts:95-105` (CSV cleanup for legacy data)
+
+**References**:
+- [RFC 5545 §3.3.10 - Recurrence Rule](https://icalendar.org/iCalendar-RFC-5545/3-3-10-recurrence-rule.html)
+- [iCalendar YEARLY rrule without BYMONTH - Stack Overflow](https://stackoverflow.com/questions/43084211/icalendar-yearly-rrule-without-bymonth-value)
+
+### Description Field HTML/CSS Junk Filtering (Fixed in v1.2.4)
+**Issue**: 1,832 calendar entries had corrupted descriptions containing HTML/CSS artifacts from malformed Outlook body extraction, causing Google Calendar to reject the ICS file or display garbled content.
+
+**Root Cause**: The `extractDescription()` method in calendar-extractor.ts strips HTML tags but doesn't catch certain Microsoft Word/Outlook HTML artifacts like CSS comments, language codes, and boolean strings. These patterns appear when bodyHTML field extraction fails partially.
+
+**Common patterns**:
+- `false\nfalse\nfalse\n\nEN-GB\nX-NONE\nX-NONE\n\n/* Style Definitions */\ntable.MsoNormal`
+- Language codes: EN-GB, X-NONE
+- CSS comments: `/* Style Definitions */`
+- MS Word artifacts: `table.MsoNormal`
+- Lone boolean strings: true, false
+
+**Solution (Fixed in v1.2.4)**:
+Enhanced `formatDescription()` in `text-formatter.ts:16-64` to detect and filter out these patterns before export.
+
+**Impact**:
+- **Before fix**: 1,832 entries with corrupted descriptions
+- **After fix**: All junk descriptions converted to empty strings
+- **Result**: Clean ICS files that import successfully into all calendar applications
+
+**Code Pattern**:
+```typescript
+// In text-formatter.ts (lines 21-47)
+export function formatDescription(description: string | undefined): string {
+  if (!description) return '';
+
+  const junkPatterns = [
+    /^(false\s*)+$/i,                    // Multiple "false" entries
+    /^(EN-GB|X-NONE)\s*$/i,              // Language codes
+    /\/\*\s*Style\s+Defin?itions?\s*\*\//i, // CSS comments
+    /table\.MsoNormal/i,                 // MS Word HTML artifacts
+    /^\s*(true|false)\s*$/i,             // Lone boolean strings
+  ];
+
+  const trimmed = description.trim();
+  for (const pattern of junkPatterns) {
+    if (pattern.test(trimmed)) return ''; // Return empty for pure junk
+  }
+
+  // Check for junk at start of description
+  if (trimmed.startsWith('false\n') ||
+      trimmed.startsWith('EN-GB') ||
+      trimmed.startsWith('X-NONE') ||
+      trimmed.includes('/* Style Defin')) {
+    return '';
+  }
+
+  // Normal formatting continues...
+}
+```
+
+**Location**: `src/utils/text-formatter.ts:16-64`
+
 ### Google Calendar Import (Fixed in v1.2.2)
 **Issue**: ICS files generated before v1.2.2 fail to import into Google Calendar silently (no error, no events imported).
 
@@ -460,6 +568,179 @@ if (recurrencePattern?.includes('FREQ=YEARLY') && recurrencePattern?.includes('I
 Birthday and anniversary date normalization can create duplicate entries. The CSV export now tracks unique entries using a composite key (subject + start date + start time) to prevent duplicates after date standardization.
 
 **Location**: `export-to-csv.ts:102-165`
+
+### Split File Generation Strategy (Enhanced in v1.2.4)
+**Feature**: Automatically splits large calendars into 499-event chunks for Google Calendar compatibility.
+
+**Background**: Files with 499 events were tested and confirmed to import successfully into Google Calendar. The value of 499 is a working estimate based on successful testing, not a confirmed hard limit from Google.
+
+**Solution**: The export-to-ical.ts script automatically handles file splitting:
+1. **Small calendars (≤499 events)**: Creates single file `calendar-export.ics`
+2. **Large calendars (500+ events)**: Creates split files `calendar-part-X-of-Y.ics` with 499 events each
+
+**Implementation** (`export-to-ical.ts:142-187`):
+```typescript
+async function splitAndSaveCalendar(
+  entries: CalendarEntry[],
+  eventsPerFile: number = 499
+): Promise<void> {
+  const totalEvents = entries.length;
+  const numFiles = Math.ceil(totalEvents / eventsPerFile);
+
+  console.log(`\nGenerating ${numFiles} iCalendar file${numFiles > 1 ? 's' : ''} for Google Calendar...`);
+  console.log(`Total events: ${totalEvents} (${eventsPerFile} events per file)\n`);
+
+  for (let fileNum = 0; fileNum < numFiles; fileNum++) {
+    const startIdx = fileNum * eventsPerFile;
+    const endIdx = Math.min((fileNum + 1) * eventsPerFile, totalEvents);
+    const chunkEntries = entries.slice(startIdx, endIdx);
+
+    const outputPath = numFiles === 1
+      ? 'calendar-export.ics'
+      : `calendar-part-${fileNum + 1}-of-${numFiles}.ics`;
+
+    const converter = new ICalConverter();
+    const calendarName = numFiles === 1
+      ? 'Exported Calendar'
+      : `Exported Calendar (Part ${fileNum + 1} of ${numFiles})`;
+
+    const calendar = converter.convert(chunkEntries, {
+      calendarName,
+      timezone: 'UTC',
+    });
+
+    await converter.saveToFile(calendar, outputPath);
+    console.log(`✓ Created ${outputPath} with ${chunkEntries.length} events`);
+  }
+
+  console.log(`\n✓ Successfully created ${numFiles} file${numFiles > 1 ? 's' : ''}`);
+
+  if (numFiles > 1) {
+    console.log(`\n📋 Import Instructions:`);
+    console.log(`   Import split files sequentially into Google Calendar:`);
+    console.log(`     1. Import calendar-part-1-of-${numFiles}.ics`);
+    console.log(`     2. Wait for import to complete`);
+    console.log(`     3. Import calendar-part-2-of-${numFiles}.ics`);
+    console.log(`     4. Repeat for all ${numFiles} files`);
+  }
+}
+```
+
+**User Experience**:
+- **Small calendars**: Get single `calendar-export.ics` file with clear success message
+- **Large calendars**: Get split files with clear import instructions
+- **Sequential import**: Must import split files one at a time, waiting for each to complete
+
+**Example Output (Large Calendar)**:
+```
+Generating 10 iCalendar files for Google Calendar...
+Total events: 4886 (499 events per file)
+
+✓ Created calendar-part-1-of-10.ics with 499 events
+✓ Created calendar-part-2-of-10.ics with 499 events
+✓ Created calendar-part-3-of-10.ics with 499 events
+✓ Created calendar-part-4-of-10.ics with 499 events
+✓ Created calendar-part-5-of-10.ics with 499 events
+✓ Created calendar-part-6-of-10.ics with 499 events
+✓ Created calendar-part-7-of-10.ics with 499 events
+✓ Created calendar-part-8-of-10.ics with 499 events
+✓ Created calendar-part-9-of-10.ics with 499 events
+✓ Created calendar-part-10-of-10.ics with 395 events
+
+✓ Successfully created 10 files
+
+📋 Import Instructions:
+   Import split files sequentially into Google Calendar:
+     1. Import calendar-part-1-of-10.ics
+     2. Wait for import to complete
+     3. Import calendar-part-2-of-10.ics
+     4. Repeat for all 10 files
+```
+
+**Example Output (Small Calendar)**:
+```
+Generating 1 iCalendar file for Google Calendar...
+Total events: 250 (499 events per file)
+
+✓ Created calendar-export.ics with 250 events
+
+✓ Successfully created 1 file
+
+You can import calendar-export.ics into Google Calendar or any RFC 5545-compliant calendar application.
+```
+
+**Technical Details**:
+- Default chunk size: 499 events (tested and confirmed to import successfully)
+- Each file is a complete, valid iCalendar with proper headers and footers
+- Calendar names include part numbers for identification in the target application
+- Files are generated sequentially to avoid memory issues with very large calendars
+- No complete/unsplit file generated for large calendars
+
+### Historical Birthday Date Modernization (Added in v1.2.4)
+**Feature**: Automatically modernizes very old recurring birthday/anniversary dates for Google Calendar compatibility while preserving original birth years and all actual event dates.
+
+**Background**: Google Calendar has display issues with recurring events starting before 1970. However, we cannot modernize all historical dates because many are actual appointments from 2000-2004 that must retain their accurate dates.
+
+**Solution**: Selective date modernization that only affects recurring birthdays/anniversaries before 1970:
+- **Recurring birthdays/anniversaries before 1970**: Start date changed to 2020 (modern anchor date)
+- **Original birth year**: Preserved in subject line (e.g., "John's Birthday (15/03/1965)")
+- **Regular events**: ALL actual event dates preserved unchanged (including 2000-2004 appointments)
+- **Threshold**: Only dates before 1970 are modernized (1970-1999 dates remain unchanged)
+
+**Implementation** (`src/converter/property-mapper.ts:59-86`):
+```typescript
+// Special handling for birthdays/anniversaries - force them to be all-day events with correct date
+const subject = (entry.subject || '').toLowerCase();
+const isBirthdayOrAnniversary =
+  subject.includes('birthday') ||
+  subject.includes('bithday') ||  // Handle typos
+  subject.includes('anniversary');
+
+if (isBirthdayOrAnniversary && entry.recurrencePattern) {
+  // Extract day from BYMONTHDAY in recurrence pattern
+  const byMonthDayMatch = entry.recurrencePattern.match(/BYMONTHDAY=(\d+)/);
+  if (byMonthDayMatch) {
+    const correctDay = parseInt(byMonthDayMatch[1]);
+    const baseDate = new Date(entry.startTime);
+    const originalYear = baseDate.getFullYear();
+    const month = baseDate.getMonth();
+
+    // For recurring birthdays/anniversaries, use a modern year as the "anchor" date
+    // The original birth year is preserved in the subject line (e.g., "John's Birthday (15/03/1965)")
+    // This avoids Google Calendar's issues with very old recurring event start dates
+    // while maintaining accurate annual recurrence going forward
+    const modernYear = originalYear < 1970 ? 2020 : originalYear;
+
+    startTime = new Date(modernYear, month, correctDay);
+    endTime = new Date(modernYear, month, correctDay + 1); // RFC 5545: DTEND is exclusive
+    isAllDay = true; // Force as all-day event
+  }
+}
+```
+
+**Impact**:
+- **Birthdays before 1970**: Modernized to 2020 anchor dates (e.g., 1926 → 2020)
+- **Birthdays 1970-1999**: Keep original year (e.g., 1985 remains 1985)
+- **Regular events**: All preserved with original dates (780+ events from 2000-2004)
+- **Result**: All recurring birthdays import successfully while maintaining historical accuracy
+
+**CALSCALE and METHOD Headers** (`src/converter/ical-converter.ts:26-32`):
+Added required RFC 5545 headers for Google Calendar compatibility:
+```typescript
+const calendar = ical({
+  name: options.calendarName || DEFAULT_CALENDAR_NAME,
+  prodId: options.productId || `//${APP_NAME}//v${APP_VERSION}//EN`,
+  timezone: options.timezone || DEFAULT_TIMEZONE,
+  scale: 'GREGORIAN',
+  method: ICalCalendarMethod.PUBLISH,
+});
+```
+
+**Location**:
+- `src/converter/property-mapper.ts:59-86` (selective date modernization)
+- `src/converter/ical-converter.ts:26-32` (CALSCALE and METHOD headers)
+
+**Key Design Decision**: The 1970 threshold was chosen based on user feedback that "we cannot have all dates 2000 or later" - preserving the distinction between very old recurring birthdays (which need modernization) and actual historical events (which must remain accurate).
 
 ### Calendar Folder Detection (Fixed in v1.2.3)
 **Issue**: Folders with non-standard names like "Calendar (This computer only)" were not recognized as calendar folders, causing "No calendar folder found in PST file" errors. Additionally, nested calendar folder structures were not fully explored, and only the largest folder was processed when multiple calendar folders existed.

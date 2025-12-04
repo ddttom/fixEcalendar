@@ -1,4 +1,4 @@
-import ical, { ICalCalendar } from 'ical-generator';
+import ical, { ICalCalendar, ICalCalendarMethod } from 'ical-generator';
 import * as fs from 'fs';
 import { CalendarEntry } from '../parser/types';
 import { ConversionOptions, ConversionResult } from './types';
@@ -27,6 +27,8 @@ export class ICalConverter {
         name: options.calendarName || DEFAULT_CALENDAR_NAME,
         prodId: options.productId || `//${APP_NAME}//v${APP_VERSION}//EN`,
         timezone: options.timezone || DEFAULT_TIMEZONE,
+        scale: 'GREGORIAN',
+        method: ICalCalendarMethod.PUBLISH,
       });
 
       let successCount = 0;
