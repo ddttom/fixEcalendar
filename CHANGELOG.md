@@ -12,12 +12,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files with errors (unreadable, corrupted, or no calendar folders)
   - Files with zero calendar entries
   - Files where all entries were duplicates
+- **Overlapping Event Merge**: Automatic merging of overlapping events with same description
+  - New script `merge-overlapping-events.ts` for manual/automatic merging
+  - Subject normalization removes time prefixes (e.g., "09:30", "11:05")
+  - Merges events with earliest start and latest end time
+  - Selects best description from multiple entries
+  - Dry-run support for safe preview
+- **Automatic Merge Integration**: Runs automatically after PST import
+  - `--skip-merge` CLI option to disable automatic merging
+  - Non-fatal failure handling with manual fallback
+- **Birthday Pattern Fix Script**: `fix-birthday-byday-patterns.ts`
+  - Converts corrupted BYDAY patterns to BYMONTHDAY for birthdays/anniversaries
+  - Adds "(UNCERTAIN DATE)" flag for manual review
+  - Preserves all data per data preservation policy
+- **Yearly BYDAY Cleanup Script**: `cleanup-yearly-byday.ts`
+  - One-time database repair for missing BYMONTH parameters
+  - Fixes RFC 5545 compliance for yearly recurring events
+- **Data Preservation Policy**: Added to CLAUDE.md
+  - Never delete entries without explicit user request
+  - Convert, mark, and preserve suspicious data instead
 
 ### Changed
 - **Breaking Change**: Now processes ALL calendar folders found in a PST file, not just the largest one
 - Multiple calendar folders in a single PST are now all processed automatically
 - Clear folder-by-folder progress indication when processing multiple folders
 - Total summary shown when multiple folders are processed
+- **RFC 5545 Enhancement**: Yearly BYDAY patterns now include BYMONTH parameter
+  - PST import adds BYMONTH during extraction
+  - CSV import includes cleanup for legacy data
 
 ### Fixed
 - Calendar folder detection now uses Microsoft's PR_CONTAINER_CLASS property (containerClass)
@@ -25,6 +47,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Parser now finds and processes ALL calendar folders in PST file, including nested folders
 - Enhanced logging shows displayName, containerClass, and entry count for troubleshooting
 - Fallback to name-based detection ensures backward compatibility with existing PST files
+- **Critical**: Missing BYMONTH in yearly BYDAY patterns causing Google Calendar import failures
+  - "York Residents First Weekend" and similar events now import correctly
+  - Without BYMONTH: `FREQ=YEARLY;BYDAY=-1SA` means last Saturday of YEAR (December)
+  - With BYMONTH: `FREQ=YEARLY;BYMONTH=1;BYDAY=-1SA` means last Saturday of JANUARY
+  - Fixed 7 entries with yearly BYDAY patterns
+- Corrupted birthday patterns using BYDAY (floating weekday) instead of BYMONTHDAY (specific date)
+  - Converted to BYMONTHDAY using actual start date
+  - Marked with "(UNCERTAIN DATE)" for manual verification
+- Overlapping events creating calendar clutter
+  - Events like "09:30 Aquafit", "11:05 Aquafit" now merged into single "Aquafit" event
+  - Merged 7 groups of overlapping events in typical calendar
 
 ## [1.2.5] - 2025-12-04
 
