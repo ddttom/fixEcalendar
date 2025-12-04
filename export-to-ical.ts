@@ -75,6 +75,23 @@ function rowToEntry(fields: string[]): CalendarEntry {
     recurrencePattern = recurrencePattern.replace(/;;/g, ';');
   }
 
+  // Fix: UNTIL must include time component to match DTSTART format (RFC 5545)
+  // Convert UNTIL=YYYYMMDD to UNTIL=YYYYMMDDTHHMMSSZ
+  if (recurrencePattern && recurrencePattern.includes('UNTIL=')) {
+    recurrencePattern = recurrencePattern.replace(/UNTIL=(\d{8})(?!T)/g, 'UNTIL=$1T235959Z');
+  }
+
+  // Fix: Daily recurrence intervals stored as minutes (MS-OXOCAL spec)
+  // Convert INTERVAL=1440 (minutes) to INTERVAL=1 (day), INTERVAL=2880 to INTERVAL=2, etc.
+  if (recurrencePattern && recurrencePattern.includes('FREQ=DAILY') && recurrencePattern.includes('INTERVAL=')) {
+    recurrencePattern = recurrencePattern.replace(/INTERVAL=(\d+)/g, (match, minutes) => {
+      const days = Math.floor(parseInt(minutes) / 1440);
+      return days > 1 ? `INTERVAL=${days}` : ''; // Omit INTERVAL=1 (it's the default)
+    });
+    // Clean up any leftover semicolons
+    recurrencePattern = recurrencePattern.replace(/;;+/g, ';').replace(/;$/, '');
+  }
+
   // Parse dates
   let startDateTime: Date;
   let endDateTime: Date;

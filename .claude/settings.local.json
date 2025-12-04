@@ -41,7 +41,10 @@
       "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar add .claude/settings.local.json package-lock.json)",
       "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar commit -m \"$(cat <<''EOF''\nchore: update permissions and Node.js engine requirement\n\n- Added git workflow permissions to settings.local.json\n- Updated Node.js engine requirement to >=18.18.0 in package-lock.json\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(grep:*)",
-      "Bash(printf:*)"
+      "Bash(printf:*)",
+      "Bash(echo:*)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar log --oneline -5)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar add .claude/settings.local.json CLAUDE.md README.md export-to-ical.ts src/parser/calendar-extractor.ts RFC5545-COMPLIANCE-REPORT.md)"
     ],
     "deny": [],
     "ask": []

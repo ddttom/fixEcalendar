@@ -925,6 +925,11 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Fix**: Birthday/anniversary events now have proper exclusive DTEND dates
 - **Impact**: ICS files now import successfully into Google Calendar without "oops" errors
 - **Technical**: DTEND for all-day events is now the day after the event (exclusive end date per RFC 5545)
+- **Critical Fix**: Recurring events now RFC 5545 compliant (UNTIL time component and daily intervals)
+- **Fix**: UNTIL values now include time component (e.g., `UNTIL=21001231T235959Z` instead of `UNTIL=21001231`)
+- **Fix**: Daily recurrence intervals converted from minutes to days (MS-OXOCAL spec compliance)
+- **Impact**: Fixed 72 recurring events with date-only UNTIL, converted `INTERVAL=1440` (minutes) to `INTERVAL=1` (day)
+- **Result**: All recurring events including Genealogy entries now import successfully into Google Calendar
 
 ### v1.2.3 (2025-12-04)
 

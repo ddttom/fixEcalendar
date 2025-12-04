@@ -370,6 +370,68 @@ if (isAllDay) {
 - **Birthdays/anniversaries**: CSV has same start and end date (June 13 → June 13) → needs +1 in ICS
 - **Regular all-day events**: CSV already has exclusive end date (May 4 → May 5) → no adjustment needed
 
+### RFC 5545 Recurring Event Compliance (Fixed in v1.2.4)
+**Issue**: Recurring events with UNTIL clauses were not importing into Google Calendar because:
+1. UNTIL values lacked time components (e.g., `UNTIL=21001231` instead of `UNTIL=21001231T235959Z`)
+2. Daily recurrence intervals were stored in minutes instead of days (e.g., `INTERVAL=1440` instead of `INTERVAL=1`)
+
+**Root Cause**:
+1. **UNTIL format**: RFC 5545 requires that UNTIL must match the format of DTSTART. Since DTSTART includes a time component (`DTSTART:20220915T120000Z`), UNTIL must also include a time component in UTC format
+2. **Daily intervals**: Microsoft Outlook PST files store daily recurrence periods as minutes (per MS-OXOCAL specification), where 1440 minutes = 1 day. The code was directly using these minute values as day intervals, causing `INTERVAL=1440` to mean "every 1440 days" instead of "every 1 day"
+
+**Solution (Fixed in v1.2.4)**:
+1. **UNTIL time component** (`calendar-extractor.ts:455`, `export-to-ical.ts:80-82`):
+   - Added `T235959Z` suffix to all UNTIL values during import
+   - Added regex cleanup in CSV import to convert date-only UNTIL to date-time format
+2. **Daily interval conversion** (`calendar-extractor.ts:380-384`, `export-to-ical.ts:84-93`):
+   - Convert Outlook's minute-based intervals to days by dividing by 1440
+   - Clean up existing CSV data during ICS conversion
+
+**Impact**:
+- **Before fix**: 72 recurring events with `UNTIL=21001231` (rejected by Google Calendar)
+- **After fix**: All UNTIL values have `UNTIL=21001231T235959Z` format ✓
+- **Before fix**: `INTERVAL=1440` meant every 1440 days (~4 years)
+- **After fix**: `INTERVAL=1` means every 1 day ✓
+- **Result**: All recurring events including Genealogy entries now import successfully
+
+**Code Pattern**:
+```typescript
+// In calendar-extractor.ts (UNTIL with time)
+const month = String(pattern.endDate.getMonth() + 1).padStart(2, '0');
+const day = String(pattern.endDate.getDate()).padStart(2, '0');
+rruleParts.push(`UNTIL=${endYear}${month}${day}T235959Z`);
+
+// In calendar-extractor.ts (daily interval conversion)
+if (pattern.recurFrequency === 8202) { // Daily
+  const days = Math.floor(pattern.period / 1440);
+  if (days > 1) {
+    rruleParts.push(`INTERVAL=${days}`);
+  }
+}
+
+// In export-to-ical.ts (UNTIL cleanup)
+if (recurrencePattern?.includes('UNTIL=')) {
+  recurrencePattern = recurrencePattern.replace(/UNTIL=(\d{8})(?!T)/g, 'UNTIL=$1T235959Z');
+}
+
+// In export-to-ical.ts (interval cleanup)
+if (recurrencePattern?.includes('FREQ=DAILY') && recurrencePattern?.includes('INTERVAL=')) {
+  recurrencePattern = recurrencePattern.replace(/INTERVAL=(\d+)/g, (match, minutes) => {
+    const days = Math.floor(parseInt(minutes) / 1440);
+    return days > 1 ? `INTERVAL=${days}` : '';
+  });
+}
+```
+
+**Location**:
+- `src/parser/calendar-extractor.ts:451-455` (UNTIL format)
+- `src/parser/calendar-extractor.ts:376-394` (daily interval conversion)
+- `export-to-ical.ts:77-93` (CSV cleanup for both issues)
+
+**References**:
+- [RFC 5545 §3.3.10 - UNTIL must match DTSTART format](https://icalendar.org/iCalendar-RFC-5545/3-3-10-recurrence-rule.html)
+- [MS-OXOCAL §2.2.1.44.1 - Daily period stored in minutes](https://learn.microsoft.com/en-us/openspecs/exchange_server_protocols/ms-oxocal/cf7153b4-f8b5-4cb6-bf14-e78d21f94814)
+
 ### Google Calendar Import (Fixed in v1.2.2)
 **Issue**: ICS files generated before v1.2.2 fail to import into Google Calendar silently (no error, no events imported).
 

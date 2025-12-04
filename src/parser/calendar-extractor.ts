@@ -374,12 +374,21 @@ export class CalendarExtractor {
     }
 
     // Add interval (period)
-    // Note: For yearly events, Outlook stores period as 12 (months), but iCalendar expects 1 (year)
+    // Note: Outlook stores periods differently based on frequency type (MS-OXOCAL spec)
     if (pattern.period && pattern.period > 1) {
-      // Convert months to years for yearly frequency
-      if (pattern.recurFrequency === 8205 && pattern.period === 12) {
+      // Daily: period stored as minutes (1440 minutes = 1 day)
+      if (pattern.recurFrequency === 8202) {
+        const days = Math.floor(pattern.period / 1440);
+        if (days > 1) {
+          rruleParts.push(`INTERVAL=${days}`);
+        }
+      }
+      // Yearly: period stored as months (12 months = 1 year)
+      else if (pattern.recurFrequency === 8205 && pattern.period === 12) {
         // 12 months = 1 year, so INTERVAL=1 (which is default, no need to add)
-      } else {
+      }
+      // Weekly/Monthly: period stored as weeks/months directly
+      else {
         rruleParts.push(`INTERVAL=${pattern.period}`);
       }
     }
@@ -448,10 +457,11 @@ export class CalendarExtractor {
           if (endYear > 2100) {
             endYear = 2100;
           }
-          // Format as YYYYMMDD
+          // Format as YYYYMMDDTHHMMSSZ (RFC 5545: UNTIL must match DTSTART format)
+          // Since DTSTART includes time, UNTIL must also include time in UTC format
           const month = String(pattern.endDate.getMonth() + 1).padStart(2, '0');
           const day = String(pattern.endDate.getDate()).padStart(2, '0');
-          rruleParts.push(`UNTIL=${endYear}${month}${day}`);
+          rruleParts.push(`UNTIL=${endYear}${month}${day}T235959Z`);
         }
         break;
 
