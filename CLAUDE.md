@@ -58,12 +58,11 @@ PST File → Parser Layer → Database Layer → Export Layer → ICS/CSV
    - `ical-converter.ts`: Generates ICS files
    - `export-to-csv.ts`: Generates CSV files
 
-### Dual CLI Entry Points
+### CLI Entry Point
 
-- **`src/index-with-db.ts`** (Primary): Production mode with database and deduplication
-- **`src/index.ts`** (Legacy): Direct PST → ICS without database
+- **`src/index-with-db.ts`**: Main CLI with database support, deduplication, and large file handling
 
-The database mode is recommended for all use cases, especially large files and incremental processing.
+This is the primary and only CLI entry point. The legacy direct PST → ICS conversion (without database) has been removed in favor of the database-backed approach, which provides better performance, deduplication, and incremental processing.
 
 ### Data Flow Example
 
@@ -155,14 +154,14 @@ npx ts-node src/index-with-db.ts input.pst
 npx ts-node src/index-with-db.ts input.pst --skip-merge
 
 # Manual merge anytime
-npx ts-node merge-overlapping-events.ts
+npx ts-node src/utils/merge-overlapping-events.ts
 
 # Preview merge without changes
-npx ts-node merge-overlapping-events.ts --dry-run
+npx ts-node src/utils/merge-overlapping-events.ts --dry-run
 ```
 
 **Location**:
-- Merge script: `merge-overlapping-events.ts`
+- Merge script: `src/utils/merge-overlapping-events.ts`
 - Auto-merge integration: `src/index-with-db.ts:335-351`
 
 ## Export Scripts

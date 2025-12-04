@@ -336,18 +336,18 @@ async function main() {
           if (!options.skipMerge && totalAdded > 0) {
             console.log('\n=== Auto-Merging Overlapping Events ===');
             try {
-              // Dynamic import using require since it's in the project root
-              const mergePath = path.join(__dirname, '..', 'merge-overlapping-events');
+              // Dynamic import of merge utility from src/utils
+              const mergePath = path.join(__dirname, 'utils', 'merge-overlapping-events');
               const { mergeOverlappingEvents } = require(mergePath);
               await mergeOverlappingEvents(false); // false = not dry-run
               console.log('✓ Automatic merge completed');
             } catch (error) {
               logger.warn('Auto-merge failed (non-fatal):', error as Error);
-              console.log('You can manually run: npx ts-node merge-overlapping-events.ts');
+              console.log('You can manually run: npx ts-node src/utils/merge-overlapping-events.ts');
             }
           } else if (options.skipMerge) {
             console.log('\n⏭️  Skipped automatic merge (--skip-merge specified)');
-            console.log('To merge overlapping events, run: npx ts-node merge-overlapping-events.ts');
+            console.log('To merge overlapping events, run: npx ts-node src/utils/merge-overlapping-events.ts');
           }
 
           // Show file status report if there are problematic files

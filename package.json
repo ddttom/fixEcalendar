@@ -2,14 +2,14 @@
   "name": "fixecalendar",
   "version": "1.2.0",
   "description": "Convert calendar entries from Microsoft Outlook PST files to iCalendar (iCal/ICS) format",
-  "main": "dist/index.js",
+  "main": "dist/index-with-db.js",
   "bin": {
-    "fixECalendar": "./dist/index.js"
+    "fixECalendar": "./dist/index-with-db.js"
   },
   "scripts": {
     "build": "tsc",
-    "dev": "ts-node src/index.ts",
-    "start": "node dist/index.js",
+    "dev": "ts-node src/index-with-db.ts",
+    "start": "node dist/index-with-db.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

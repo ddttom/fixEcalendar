@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files with zero calendar entries
   - Files where all entries were duplicates
 - **Overlapping Event Merge**: Automatic merging of overlapping events with same description
-  - New script `merge-overlapping-events.ts` for manual/automatic merging
+  - New utility script `src/utils/merge-overlapping-events.ts` for manual/automatic merging
   - Subject normalization removes time prefixes (e.g., "09:30", "11:05")
   - Merges events with earliest start and latest end time
   - Selects best description from multiple entries

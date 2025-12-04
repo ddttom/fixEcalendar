@@ -489,6 +489,56 @@ This creates RFC 5545 compliant iCalendar files from your CSV data. The script:
 - Create a portable calendar file from CSV data
 - Convert between formats for different use cases
 
+### Merge Overlapping Events
+
+After importing PST files, you may have overlapping events on the same day with similar subjects. fixECalendar can automatically merge these into single, unified events:
+
+```bash
+# Preview merge without making changes
+npx ts-node src/utils/merge-overlapping-events.ts --dry-run
+
+# Merge overlapping events
+npx ts-node src/utils/merge-overlapping-events.ts
+```
+
+**What it does:**
+- Finds events on the same day with similar subjects (after normalization)
+- Removes time prefixes like "09:30", "11:05" from subjects
+- Checks if events actually overlap in time
+- Merges overlapping events into a single event with:
+  - **Start time**: Earliest start time from all events
+  - **End time**: Latest end time from all events
+  - **Subject**: Normalized subject (without time prefixes)
+  - **Description**: Longest non-junk description
+  - **Location/Organizer**: First non-null value found
+
+**Example merge:**
+```
+Before:
+- "Aquafit 09:30" (08:00-10:00)
+- "11:05 Aquafit" (09:30-11:30)
+
+After:
+- "Aquafit" (08:00-11:30)
+```
+
+**Automatic merge:** By default, overlapping event merge runs automatically after PST import (unless you use `--skip-merge`):
+
+```bash
+# Normal import (automatic merge)
+fixECalendar input.pst --include-private
+
+# Skip automatic merge
+fixECalendar input.pst --skip-merge
+```
+
+**When to use:**
+- After importing PST files with duplicate time-stamped events
+- When you notice multiple entries for the same activity on one day
+- Before exporting to clean up your calendar data
+
+**Location:** `src/utils/merge-overlapping-events.ts`
+
 ### Fix Corrupted Recurrence Dates
 
 Microsoft Outlook has a known bug where recurrence UNTIL dates are sometimes stored with year 1600 (`UNTIL=16001231`). The `sanitize-recurrence-dates.ts` script fixes these corrupted dates in your existing database:
@@ -745,7 +795,6 @@ If you're using [Claude Code](https://claude.com/claude-code), this project incl
 fixEcalendar/
 ├── src/
 │   ├── index-with-db.ts         # Main CLI with database support
-│   ├── index.ts                 # Legacy CLI (no database)
 │   ├── database/
 │   │   └── calendar-db.ts       # SQLite database manager
 │   ├── parser/
@@ -761,7 +810,8 @@ fixEcalendar/
 │   │   ├── validators.ts        # Validation
 │   │   ├── error-handler.ts    # Error handling
 │   │   ├── text-formatter.ts   # Text formatting utilities
-│   │   └── recurrence-validator.ts # Recurrence pattern validation (v1.2.5)
+│   │   ├── recurrence-validator.ts # Recurrence pattern validation (v1.2.5)
+│   │   └── merge-overlapping-events.ts # Merge overlapping events (v1.2.6)
 │   └── config/
 │       └── constants.ts         # Constants & validation config
 ├── cleanup-suspicious-recurrence.ts # Fix absurd recurrence patterns (v1.2.5)

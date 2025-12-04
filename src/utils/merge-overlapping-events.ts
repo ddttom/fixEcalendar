@@ -14,7 +14,7 @@
  * 4. Keep the entry with the longest description
  * 5. Delete duplicate entries
  *
- * Usage: npx ts-node merge-overlapping-events.ts [--dry-run]
+ * Usage: npx ts-node src/utils/merge-overlapping-events.ts [--dry-run]
  */
 
 import Database from 'better-sqlite3';
