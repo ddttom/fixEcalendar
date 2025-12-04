@@ -124,6 +124,31 @@ The SQLite database (`.fixecalendar.db`) has three tables:
 - **`src/utils/text-formatter.ts`**: Modify text cleaning/formatting rules
 - **`src/parser/types.ts`**: Add fields to CalendarEntry interface (affects entire pipeline)
 
+## Export Scripts
+
+### CSV Export (`export-to-csv.ts`)
+Standalone script that exports calendar entries from the SQLite database to CSV format.
+- Reads directly from `.fixecalendar.db`
+- Outputs `calendar-export.csv` with 15 columns
+- Special handling for birthdays/anniversaries and all-day events
+- Proper CSV escaping for Excel compatibility
+
+### ICS Export from CSV (`export-to-ical.ts`)
+Standalone script that converts CSV export to iCalendar (ICS) format.
+- Reads from `calendar-export.csv`
+- Parses CSV with proper quoted field handling
+- Converts to CalendarEntry objects
+- Uses ICalConverter to generate RFC 5545 compliant `calendar-export.ics`
+- Preserves all properties including attendees, recurrence, reminders
+- Reuses existing PropertyMapper for consistent formatting
+
+**Workflow:**
+```
+Database → export-to-csv.ts → calendar-export.csv → export-to-ical.ts → calendar-export.ics
+```
+
+This two-step process allows for CSV review/editing before ICS generation.
+
 ## Common Development Patterns
 
 ### Adding a New Export Format

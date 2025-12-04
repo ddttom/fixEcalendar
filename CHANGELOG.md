@@ -5,6 +5,19 @@ All notable changes to fixECalendar will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- CSV to ICS conversion script (`export-to-ical.ts`)
+- Ability to convert `calendar-export.csv` to `calendar-export.ics`
+- Full RFC 5545 compliant iCalendar generation from CSV data
+- Proper CSV parsing with quoted field handling
+- Date/time conversion from CSV format to CalendarEntry objects
+
+### Changed
+- `export-to-ical.ts` now reads from CSV file instead of database
+- Simplified workflow: export to CSV for analysis, then convert to ICS for import
+
 ## [1.2.1] - 2025-12-04
 
 ### Added

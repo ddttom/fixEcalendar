@@ -318,6 +318,28 @@ This creates `calendar-export.csv` with the following columns:
 
 This ensures all birthday/anniversary dates are consistently formatted across all exports.
 
+### Convert CSV to ICS
+
+If you have a CSV file exported from the database, you can convert it to iCalendar (ICS) format:
+
+```bash
+# Convert calendar-export.csv to calendar-export.ics
+npx ts-node export-to-ical.ts
+```
+
+This creates a full RFC 5545 compliant iCalendar file from your CSV data. The script:
+- Reads from `calendar-export.csv`
+- Parses all calendar entries with proper date/time handling
+- Generates `calendar-export.ics` with complete iCal structure
+- Preserves all properties (attendees, recurrence, reminders, etc.)
+- Handles all-day events and birthdays correctly
+
+**Use case:** This is useful when you want to:
+- Share calendar data in iCal format after reviewing/editing the CSV
+- Import into calendar applications (Apple Calendar, Google Calendar, Outlook)
+- Create a portable calendar file from CSV data
+- Convert between formats for different use cases
+
 ## Supported Properties
 
 The converter maps the following Outlook calendar properties to iCal format:
