@@ -58,14 +58,33 @@ npm run build
 
 ## Quick Start
 
+### 🚀 Two Ways to Export
+
+**Option A: Direct Export (Fast)**
+```bash
+fixECalendar archive.pst --output calendar.ics --include-private
+```
+
+**Option B: Two-Step Workflow (Flexible)**
+```bash
+# Step 1: Export to CSV
+npx ts-node export-to-csv.ts
+
+# Step 2: Convert CSV to ICS
+npx ts-node export-to-ical.ts
+```
+Result: `calendar-export.ics` ready to import! 🎉
+
+---
+
 ### Processing Large PST Files
 
 ```bash
 # Process a 6.5GB PST file (stores in database)
-fixECalendar huge-archive.pst
+fixECalendar huge-archive.pst --include-private
 
 # Process multiple large PST files (deduplicates automatically)
-fixECalendar archive1.pst archive2.pst archive3.pst
+fixECalendar archive1.pst archive2.pst archive3.pst --include-private
 
 # View what's in the database
 fixECalendar --db-stats
@@ -77,6 +96,51 @@ fixECalendar --output my-calendar.ics
 The database file (`.fixecalendar.db`) is created in your current directory and persists between runs.
 
 ## Usage
+
+### 📋 Complete Export Workflow
+
+There are two main workflows for exporting your calendar data:
+
+#### Workflow 1: Direct PST to ICS (Fastest)
+```bash
+# Import PST files and export directly to ICS
+fixECalendar archive.pst --output calendar.ics --include-private
+```
+
+#### Workflow 2: PST → Database → CSV → ICS (Most Flexible)
+```bash
+# Step 1: Import PST files into database
+fixECalendar large-file1.pst large-file2.pst --include-private
+
+# Step 2: Check what was imported
+fixECalendar --db-stats
+
+# Step 3: Export database to CSV (for review/editing)
+npx ts-node export-to-csv.ts
+# Creates: calendar-export.csv (665KB, 4,084 entries)
+
+# Step 4: Convert CSV to ICS (for calendar import)
+npx ts-node export-to-ical.ts
+# Creates: calendar-export.ics (790KB, 2,490 events)
+```
+
+**Why use Workflow 2?**
+- ✅ Review data in spreadsheet before final export
+- ✅ Edit entries in CSV if needed
+- ✅ Filter/sort data in Excel or Google Sheets
+- ✅ Generate statistics and reports
+- ✅ Multiple format outputs (CSV + ICS) from single source
+
+**Visual Workflow:**
+```
+PST File(s) → fixECalendar → Database (.fixecalendar.db)
+                                    ↓
+                         export-to-csv.ts → CSV (calendar-export.csv)
+                                    ↓
+                        export-to-ical.ts → ICS (calendar-export.ics)
+                                                      ↓
+                                            Import to Calendar App
+```
 
 ### Basic Workflow for Large Files
 
@@ -100,6 +164,12 @@ fixECalendar --output calendar.ics
 ```bash
 npx ts-node export-to-csv.ts
 # Creates calendar-export.csv with all entries
+```
+
+**Step 5: (Optional) Convert CSV to ICS**
+```bash
+npx ts-node export-to-ical.ts
+# Creates calendar-export.ics from CSV data
 ```
 
 ### Single Command (Import + Export)
