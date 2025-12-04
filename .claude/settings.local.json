@@ -19,7 +19,9 @@
       "Bash(column -t -s '|':*)",
       "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar add -A)",
       "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar status)",
-      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar add .claude/settings.local.json)"
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar add .claude/settings.local.json)",
+      "Bash(find:*)",
+      "SlashCommand(/export-workflow)"
     ],
     "deny": [],
     "ask": []
