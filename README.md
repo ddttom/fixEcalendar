@@ -12,6 +12,7 @@ Convert calendar entries from Microsoft Outlook PST files to iCalendar (iCal/ICS
 - ✅ **Intelligent date recovery** - recovers appointments with missing/invalid dates
 - ✅ **Data quality filtering** - automatically discards corrupted entries
 - ✅ **Smart Folder Filtering** - automatically skips "Deleted Items" and trash folders
+- ✅ **Automatic File Splitting** - splits large exports into 499-event chunks for Google Calendar compatibility
 - ✅ **Intermediate SQLite database** for reliable processing
 - ✅ Export to standard iCal (.ics) format
 - ✅ **Export to CSV** for Excel/Google Sheets
@@ -330,7 +331,7 @@ This helps identify PST files that may need attention without affecting the over
 | Option | Description |
 |--------|-------------|
 | `[inputs...]` | PST file(s) or glob patterns to process |
-| `-o, --output <path>` | Output iCal file path |
+| `-o, --output <path>` | Output iCal file path (splits automatically if >499 events) |
 | `-d, --output-dir <dir>` | Output directory (for multiple files) |
 | `-m, --merge` | Merge all PST files into one calendar |
 
