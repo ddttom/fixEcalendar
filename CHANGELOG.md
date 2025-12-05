@@ -147,6 +147,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Cleaned 1,832 corrupted descriptions
 - Export-to-ical.ts now automatically splits large calendars into 499-event chunks
   - Files with 499 events import successfully into Google Calendar (tested and confirmed)
+- **Automatic File Splitting**: Main CLI now automatically splits output into multiple files if >499 events
+  - Generated files follow pattern: `calendar-part-X-of-Y.ics`
+  - Ensures full Google Calendar compatibility for all export methods
 - All recurring birthdays now import successfully while preserving historical event dates (2000-2004)
 - ICS files now import cleanly into Google Calendar, Apple Calendar, and all RFC 5545 compliant applications
 
