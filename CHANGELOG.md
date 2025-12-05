@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Output Folder Organization**: All generated files now go to dedicated `output/` folder
+  - Created `output/` directory with `.gitkeep` to track folder structure in git
+  - Export scripts automatically create output folder if missing
+  - Configured .gitignore to track folder structure but ignore generated files
+
+### Changed
+
+- **Script Reorganization**: Moved all standalone executable scripts to `src/scripts/`
+  - `export-to-csv.ts` → `src/scripts/export-to-csv.ts`
+  - `export-to-ical.ts` → `src/scripts/export-to-ical.ts`
+  - `merge-overlapping-events.ts` → `src/scripts/merge-overlapping-events.ts`
+- **Export File Locations**: Scripts now output to `output/` folder
+  - CSV export: `output/calendar-export.csv`
+  - ICS export: `output/calendar-export.ics` (or split files in output/)
+- Clear architectural separation: `src/scripts/` for executables, `src/utils/` for libraries
+- Updated all documentation to reflect new paths and output folder
+
 ## [1.3.0] - 2024-12-04
 
 ### Added
