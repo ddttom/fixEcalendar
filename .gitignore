@@ -16,7 +16,8 @@ coverage/
 
 # dont use pst files
 test.pst
-prod/
+prod/*
+!prod/.gitkeep
 
 # IDE
 .vscode/
