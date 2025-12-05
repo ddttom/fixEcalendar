@@ -1,9 +1,11 @@
 import ical, { ICalCalendar, ICalCalendarMethod } from 'ical-generator';
 import * as fs from 'fs';
+import * as path from 'path';
 import { CalendarEntry } from '../parser/types';
 import { ConversionOptions, ConversionResult } from './types';
 import { PropertyMapper } from './property-mapper';
 import { ConversionError } from '../utils/error-handler';
+import { ensureDirectoryExists } from '../utils/validators';
 import { logger } from '../utils/logger';
 import {
   DEFAULT_CALENDAR_NAME,
@@ -78,6 +80,65 @@ export class ICalConverter {
     } catch (error) {
       throw new ConversionError(`Failed to save iCal file: ${outputPath}`, error as Error);
     }
+  }
+
+  /**
+   * Split entries into multiple files if needed (max 499 events per file for Google Calendar)
+   */
+  async convertAndSaveSplit(
+    entries: CalendarEntry[],
+    outputPath: string,
+    options: ConversionOptions = {},
+    eventsPerFile: number = 499
+  ): Promise<string[]> {
+    const totalEvents = entries.length;
+    const numFiles = Math.ceil(totalEvents / eventsPerFile);
+    const createdFiles: string[] = [];
+
+    logger.info(`Generating ${numFiles} iCalendar file${numFiles > 1 ? 's' : ''}...`);
+    logger.info(`Total events: ${totalEvents} (${eventsPerFile} events per file)`);
+
+    // Ensure output directory exists
+    const outputDir = path.dirname(outputPath);
+    ensureDirectoryExists(outputDir);
+
+    // Parse base filename and extension
+    const ext = path.extname(outputPath);
+    const baseName = path.basename(outputPath, ext);
+
+    for (let fileNum = 0; fileNum < numFiles; fileNum++) {
+      const startIdx = fileNum * eventsPerFile;
+      const endIdx = Math.min((fileNum + 1) * eventsPerFile, totalEvents);
+      const chunkEntries = entries.slice(startIdx, endIdx);
+
+      const currentOutputPath =
+        numFiles === 1
+          ? outputPath
+          : path.join(outputDir, `${baseName}-part-${fileNum + 1}-of-${numFiles}${ext}`);
+
+      const partName =
+        numFiles === 1
+          ? options.calendarName
+          : `${options.calendarName || 'Exported Calendar'} (Part ${fileNum + 1} of ${numFiles})`;
+
+      const calendar = this.convert(chunkEntries, {
+        ...options,
+        calendarName: partName,
+      });
+
+      await this.saveToFile(calendar, currentOutputPath);
+      createdFiles.push(currentOutputPath);
+    }
+
+    if (numFiles > 1) {
+      logger.info(
+        `\n📋 Import Instructions:\n` +
+        `   Import split files sequentially into Google Calendar:\n` +
+        createdFiles.map((f, i) => `     ${i + 1}. ${path.basename(f)}`).join('\n')
+      );
+    }
+
+    return createdFiles;
   }
 
   toString(calendar: ICalCalendar): string {

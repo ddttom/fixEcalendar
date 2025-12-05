@@ -162,19 +162,11 @@ async function exportFromDatabase(
     timezone: options.timezone,
   };
 
-  const calendar = converter.convert(entries, conversionOptions);
-
-  // Ensure output directory exists
-  const outputDir = path.dirname(outputPath);
-  ensureDirectoryExists(outputDir);
-
   // Validate output path
   validateOutputPath(outputPath);
 
-  // Save to file
-  await converter.saveToFile(calendar, outputPath);
-
-  logger.success(`✓ Exported to: ${outputPath}`);
+  // Convert and save (with automatic splitting if needed)
+  await converter.convertAndSaveSplit(entries, outputPath, conversionOptions);
 }
 
 async function showDatabaseStats(database: CalendarDatabase): Promise<void> {
@@ -206,7 +198,7 @@ async function main() {
     .name(APP_NAME)
     .description(
       'Convert calendar entries from Microsoft Outlook PST files to iCalendar format\n' +
-        'Uses an intermediate database for deduplication and handling large files'
+      'Uses an intermediate database for deduplication and handling large files'
     )
     .version(APP_VERSION);
 

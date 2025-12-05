@@ -191,53 +191,6 @@ function rowToEntry(fields: string[]): CalendarEntry {
  * Split large calendar into multiple ICS files for Google Calendar compatibility
  * Google Calendar has a 499-event import limit per file
  */
-async function splitAndSaveCalendar(
-  entries: CalendarEntry[],
-  eventsPerFile: number = 499
-): Promise<void> {
-  const totalEvents = entries.length;
-  const numFiles = Math.ceil(totalEvents / eventsPerFile);
-
-  console.log(`\nGenerating ${numFiles} iCalendar file${numFiles > 1 ? 's' : ''} for Google Calendar...`);
-  console.log(`Total events: ${totalEvents} (${eventsPerFile} events per file)\n`);
-
-  for (let fileNum = 0; fileNum < numFiles; fileNum++) {
-    const startIdx = fileNum * eventsPerFile;
-    const endIdx = Math.min((fileNum + 1) * eventsPerFile, totalEvents);
-    const chunkEntries = entries.slice(startIdx, endIdx);
-
-    const outputPath = numFiles === 1
-      ? 'calendar-export.ics'
-      : `calendar-part-${fileNum + 1}-of-${numFiles}.ics`;
-
-    const converter = new ICalConverter();
-    const calendarName = numFiles === 1
-      ? 'Exported Calendar'
-      : `Exported Calendar (Part ${fileNum + 1} of ${numFiles})`;
-
-    const calendar = converter.convert(chunkEntries, {
-      calendarName,
-      timezone: 'UTC',
-    });
-
-    await converter.saveToFile(calendar, outputPath);
-    console.log(`✓ Created ${outputPath} with ${chunkEntries.length} events`);
-  }
-
-  console.log(`\n✓ Successfully created ${numFiles} file${numFiles > 1 ? 's' : ''}`);
-
-  if (numFiles > 1) {
-    console.log(`\n📋 Import Instructions:`);
-    console.log(`   Import split files sequentially into Google Calendar:`);
-    console.log(`     1. Import calendar-part-1-of-${numFiles}.ics`);
-    console.log(`     2. Wait for import to complete`);
-    console.log(`     3. Import calendar-part-2-of-${numFiles}.ics`);
-    console.log(`     4. Repeat for all ${numFiles} files`);
-  } else {
-    console.log(`\nYou can import calendar-export.ics into Google Calendar or any RFC 5545-compliant calendar application.`);
-  }
-}
-
 async function exportToICS() {
   const csvPath = 'calendar-export.csv';
 
@@ -275,7 +228,11 @@ async function exportToICS() {
     console.log(`Converted ${entries.length} entries`);
 
     // Automatically split if needed (default: 499 events per file)
-    await splitAndSaveCalendar(entries);
+    const converter = new ICalConverter();
+    await converter.convertAndSaveSplit(entries, 'calendar-export.ics', {
+      calendarName: 'Exported Calendar',
+      timezone: 'UTC',
+    });
   } catch (error) {
     console.error('Export failed:', (error as Error).message);
     throw error;
