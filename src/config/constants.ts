@@ -10,6 +10,14 @@ export const CALENDAR_FOLDER_NAMES = [
   'Calendario', // Spanish/Italian
 ];
 
+export const IGNORED_FOLDER_NAMES = [
+  'Deleted Items',
+  'Gelöschte Objekte', // German
+  'Éléments supprimés', // French
+  'Elementos eliminados', // Spanish
+  'Posta eliminata', // Italian
+];
+
 // Container class value for calendar folders (Microsoft standard)
 export const CALENDAR_CONTAINER_CLASS = 'IPF.Appointment';
 

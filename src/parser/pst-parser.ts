@@ -1,7 +1,7 @@
 import { PSTFile } from 'pst-extractor';
 import { PSTParsingError } from '../utils/error-handler';
 import { logger } from '../utils/logger';
-import { CALENDAR_FOLDER_NAMES, CALENDAR_CONTAINER_CLASS } from '../config/constants';
+import { CALENDAR_FOLDER_NAMES, CALENDAR_CONTAINER_CLASS, IGNORED_FOLDER_NAMES } from '../config/constants';
 
 export class PSTParser {
   private pstFile: any = null;
@@ -20,8 +20,8 @@ export class PSTParser {
       if (errorMsg.includes('findBtreeItem')) {
         throw new PSTParsingError(
           `Failed to open PST file: ${filePath}\n` +
-            `The PST file may be corrupted, encrypted, or in an unsupported format.\n` +
-            `Error details: ${errorMsg}`,
+          `The PST file may be corrupted, encrypted, or in an unsupported format.\n` +
+          `Error details: ${errorMsg}`,
           error as Error
         );
       }
@@ -98,6 +98,12 @@ export class PSTParser {
       `Checking folder: "${displayName}" (containerClass: "${containerClass || 'undefined'}", contentCount: ${folder.contentCount || 0})`
     );
 
+    // Skip ignored folders (e.g. Deleted Items)
+    if (IGNORED_FOLDER_NAMES.some(name => displayName?.toLowerCase() === name.toLowerCase())) {
+      logger.info(`Skipping ignored folder: "${displayName}"`);
+      return [];
+    }
+
     // Primary detection: Check container class (Microsoft standard approach)
     let isCalendar = false;
     if (containerClass && typeof containerClass === 'string') {
@@ -118,8 +124,7 @@ export class PSTParser {
       CALENDAR_FOLDER_NAMES.some((name) => displayName?.toLowerCase() === name.toLowerCase())
     ) {
       logger.info(
-        `Found calendar folder via display name: "${displayName}"${
-          containerClass ? ` (containerClass: ${containerClass})` : ''
+        `Found calendar folder via display name: "${displayName}"${containerClass ? ` (containerClass: ${containerClass})` : ''
         }, ${folder.contentCount || 0} entries`
       );
       calendarFolders.push(folder);
