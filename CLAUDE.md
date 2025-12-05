@@ -18,7 +18,7 @@ npm run prepare        # Runs build automatically (pre-publish hook)
 ```bash
 npm run dev            # Run with ts-node (no build required)
 node dist/index-with-db.js [args]  # Run compiled version (production mode)
-npx ts-node export-to-csv.ts       # Export database to CSV
+npx ts-node src/scripts/export-to-csv.ts       # Export database to CSV
 ```
 
 ### Testing
@@ -154,29 +154,29 @@ npx ts-node src/index-with-db.ts input.pst
 npx ts-node src/index-with-db.ts input.pst --skip-merge
 
 # Manual merge anytime
-npx ts-node src/utils/merge-overlapping-events.ts
+npx ts-node src/scripts/merge-overlapping-events.ts
 
 # Preview merge without changes
-npx ts-node src/utils/merge-overlapping-events.ts --dry-run
+npx ts-node src/scripts/merge-overlapping-events.ts --dry-run
 ```
 
 **Location**:
-- Merge script: `src/utils/merge-overlapping-events.ts`
+- Merge script: `src/scripts/merge-overlapping-events.ts`
 - Auto-merge integration: `src/index-with-db.ts:335-351`
 
 ## Export Scripts
 
-### CSV Export (`export-to-csv.ts`)
+### CSV Export (`src/scripts/export-to-csv.ts`)
 Standalone script that exports calendar entries from the SQLite database to CSV format.
 - Reads directly from `.fixecalendar.db`
-- Outputs `calendar-export.csv` with 15 columns
+- Outputs `output/calendar-export.csv` with 15 columns
 - Special handling for birthdays/anniversaries and all-day events
 - Proper CSV escaping for Excel compatibility
 - **Newline escaping**: Converts actual newlines to literal `\n` to ensure each entry is a single CSV row
 
-### ICS Export from CSV (`export-to-ical.ts`)
+### ICS Export from CSV (`src/scripts/export-to-ical.ts`)
 Standalone script that converts CSV export to iCalendar (ICS) format.
-- Reads from `calendar-export.csv`
+- Reads from `output/calendar-export.csv`
 - Parses CSV with proper quoted field handling
 - **Newline unescaping**: Converts literal `\n` back to actual newlines in descriptions
 - Converts to CalendarEntry objects
@@ -186,13 +186,13 @@ Standalone script that converts CSV export to iCalendar (ICS) format.
 - **Includes automatic cleanup**: Removes invalid `INTERVAL=12` from yearly recurrence rules for Google Calendar compatibility
 - **Automatic file splitting**: Splits large calendars into 499-event chunks for Google Calendar compatibility
   - **Working value**: 499 events per file tested and confirmed to import successfully
-  - **Small calendars (≤499 events)**: Generates single file `calendar-export.ics`
+  - **Small calendars (≤499 events)**: Generates single file `output/calendar-export.ics`
   - **Large calendars (500+ events)**: Generates split files `calendar-part-X-of-Y.ics` with 499 events each
   - **Import instructions**: Script provides clear sequential import instructions for split files
 
 **Workflow:**
 ```
-Database → export-to-csv.ts → calendar-export.csv → export-to-ical.ts → ICS files (split if >499 events)
+Database → export-to-csv.ts → output/calendar-export.csv → export-to-ical.ts → ICS files (split if >499 events)
 ```
 
 This two-step process allows for CSV review/editing before ICS generation.
@@ -321,8 +321,8 @@ The npm package installs a global `fixECalendar` command that points to `dist/in
 **Root Cause**: The `escapeCSV()` function only escaped quotes but didn't escape newlines. When descriptions contained `\n` characters, they created actual line breaks in the CSV file. The CSV import script used a simple `split('\n')` which treated each line as a separate row, breaking entries that should span a single row into multiple invalid rows.
 
 **Solution (Fixed in v1.2.4)**:
-1. **CSV Export** (`export-to-csv.ts:21`): Added `.replace(/\r?\n/g, '\\n')` to convert actual newlines to literal `\n` text
-2. **CSV Import** (`export-to-ical.ts:60`): Added `.replace(/\\n/g, '\n')` to convert literal `\n` back to actual newlines
+1. **CSV Export** (`src/scripts/export-to-csv.ts:21`): Added `.replace(/\r?\n/g, '\\n')` to convert actual newlines to literal `\n` text
+2. **CSV Import** (`src/scripts/export-to-ical.ts:60`): Added `.replace(/\\n/g, '\n')` to convert literal `\n` back to actual newlines
 
 **Impact**:
 - **Before fix**: CSV had 26,925 rows (broken), only 2,470 entries imported to ICS (50% data loss)
@@ -342,8 +342,8 @@ const description = fields[6]?.replace(/\\n/g, '\n');
 ```
 
 **Location**:
-- `export-to-csv.ts:12-22` (escapeCSV function)
-- `export-to-ical.ts:60` (description unescaping)
+- `src/scripts/export-to-csv.ts:12-22` (escapeCSV function)
+- `src/scripts/export-to-ical.ts:60` (description unescaping)
 
 ### Corrupted Recurrence UNTIL Dates (Fixed in v1.2.4)
 **Issue**: Microsoft Outlook PST files sometimes contain recurrence patterns with corrupted UNTIL dates set to year 1600 (e.g., `UNTIL=16001231`). This causes calendar applications to either reject the recurrence rule or display events incorrectly.
@@ -396,7 +396,7 @@ case 8225: // AfterDate
 2. **PST Import Validation** ([src/parser/calendar-extractor.ts:259-266, 471-503](src/parser/calendar-extractor.ts#L259-L266)): Validates patterns during extraction and caps sanitized UNTIL dates
 3. **COUNT Preference Logic** ([src/parser/calendar-extractor.ts:471-484](src/parser/calendar-extractor.ts#L471-L484)): Prefers COUNT over corrupted UNTIL when occurrenceCount ≤ 50
 4. **Database Cleanup Script** ([cleanup-suspicious-recurrence.ts](cleanup-suspicious-recurrence.ts)): One-time script to fix existing database entries
-5. **CSV Import Cleanup** ([export-to-ical.ts:107-141](export-to-ical.ts#L107-L141)): Defense-in-depth cleanup during CSV→ICS conversion
+5. **CSV Import Cleanup** ([src/scripts/export-to-ical.ts:107-141](export-to-ical.ts#L107-L141)): Defense-in-depth cleanup during CSV→ICS conversion
 
 **Validation Rules**:
 - **DAILY**: Maximum 5 years (unless infinite/COUNT-based)
@@ -475,7 +475,7 @@ if (recurrencePattern.includes('UNTIL=2100')) {
 - [src/parser/calendar-extractor.ts:259-266](src/parser/calendar-extractor.ts#L259-L266) - PST import validation
 - [src/parser/calendar-extractor.ts:466-502](src/parser/calendar-extractor.ts#L466-L502) - Sanitized date validation
 - [cleanup-suspicious-recurrence.ts](cleanup-suspicious-recurrence.ts) - Database cleanup script (NEW)
-- [export-to-ical.ts:107-141](export-to-ical.ts#L107-L141) - CSV import cleanup
+- [src/scripts/export-to-ical.ts:107-141](export-to-ical.ts#L107-L141) - CSV import cleanup
 - [src/config/constants.ts:34-49](src/config/constants.ts#L34-L49) - Configuration constants
 
 **Usage**:
@@ -487,8 +487,8 @@ npx ts-node cleanup-suspicious-recurrence.ts
 cat recurrence-cleanup-report.csv
 
 # Re-export with fixed patterns
-npx ts-node export-to-csv.ts
-npx ts-node export-to-ical.ts
+npx ts-node src/scripts/export-to-csv.ts
+npx ts-node src/scripts/export-to-ical.ts
 ```
 
 **Configuration**: Validation thresholds can be customized in [src/config/constants.ts](src/config/constants.ts) under `RECURRENCE_VALIDATION_CONFIG`.
@@ -542,10 +542,10 @@ if (isAllDay) {
 2. **Daily intervals**: Microsoft Outlook PST files store daily recurrence periods as minutes (per MS-OXOCAL specification), where 1440 minutes = 1 day. The code was directly using these minute values as day intervals, causing `INTERVAL=1440` to mean "every 1440 days" instead of "every 1 day"
 
 **Solution (Fixed in v1.2.4)**:
-1. **UNTIL time component** (`calendar-extractor.ts:455`, `export-to-ical.ts:80-82`):
+1. **UNTIL time component** (`calendar-extractor.ts:455`, `src/scripts/export-to-ical.ts:80-82`):
    - Added `T235959Z` suffix to all UNTIL values during import
    - Added regex cleanup in CSV import to convert date-only UNTIL to date-time format
-2. **Daily interval conversion** (`calendar-extractor.ts:380-384`, `export-to-ical.ts:84-93`):
+2. **Daily interval conversion** (`calendar-extractor.ts:380-384`, `src/scripts/export-to-ical.ts:84-93`):
    - Convert Outlook's minute-based intervals to days by dividing by 1440
    - Clean up existing CSV data during ICS conversion
 
@@ -588,7 +588,7 @@ if (recurrencePattern?.includes('FREQ=DAILY') && recurrencePattern?.includes('IN
 **Location**:
 - `src/parser/calendar-extractor.ts:451-455` (UNTIL format)
 - `src/parser/calendar-extractor.ts:376-394` (daily interval conversion)
-- `export-to-ical.ts:77-93` (CSV cleanup for both issues)
+- `src/scripts/export-to-ical.ts:77-93` (CSV cleanup for both issues)
 
 **References**:
 - [RFC 5545 §3.3.10 - UNTIL must match DTSTART format](https://icalendar.org/iCalendar-RFC-5545/3-3-10-recurrence-rule.html)
@@ -601,7 +601,7 @@ if (recurrencePattern?.includes('FREQ=DAILY') && recurrencePattern?.includes('IN
 
 **Solution (Fixed in v1.2.4)**:
 1. **Import enhancement** (`calendar-extractor.ts:355-425`): Modified `buildRRuleFromPattern()` to accept startTime parameter and extract month from start date
-2. **CSV cleanup** (`export-to-ical.ts:95-105`): Added cleanup for legacy CSV data to insert BYMONTH from start date
+2. **CSV cleanup** (`src/scripts/export-to-ical.ts:95-105`): Added cleanup for legacy CSV data to insert BYMONTH from start date
 
 **Impact**:
 - **Before fix**: `FREQ=YEARLY;BYMONTHDAY=13` (ambiguous - rejected by Google Calendar)
@@ -632,7 +632,7 @@ if (recurrencePattern?.includes('FREQ=YEARLY') && recurrencePattern?.includes('B
 
 **Location**:
 - `src/parser/calendar-extractor.ts:355-425` (buildRRuleFromPattern with startTime parameter)
-- `export-to-ical.ts:95-105` (CSV cleanup for legacy data)
+- `src/scripts/export-to-ical.ts:95-105` (CSV cleanup for legacy data)
 
 **References**:
 - [RFC 5545 §3.3.10 - Recurrence Rule](https://icalendar.org/iCalendar-RFC-5545/3-3-10-recurrence-rule.html)
@@ -698,7 +698,7 @@ export function formatDescription(description: string | undefined): string {
 
 **Solution Locations**:
 1. `src/parser/calendar-extractor.ts:368` - Skips adding INTERVAL for yearly events with period=12
-2. `export-to-ical.ts:71-75` - Cleans up invalid intervals when reading from CSV
+2. `src/scripts/export-to-ical.ts:71-75` - Cleans up invalid intervals when reading from CSV
 
 **Code Pattern**:
 ```typescript
@@ -718,7 +718,7 @@ if (recurrencePattern?.includes('FREQ=YEARLY') && recurrencePattern?.includes('I
 ### CSV Deduplication (Fixed in v1.2.2)
 Birthday and anniversary date normalization can create duplicate entries. The CSV export now tracks unique entries using a composite key (subject + start date + start time) to prevent duplicates after date standardization.
 
-**Location**: `export-to-csv.ts:102-165`
+**Location**: `src/scripts/export-to-csv.ts:102-165`
 
 ### Split File Generation Strategy (Enhanced in v1.2.4)
 **Feature**: Automatically splits large calendars into 499-event chunks for Google Calendar compatibility.
@@ -726,10 +726,10 @@ Birthday and anniversary date normalization can create duplicate entries. The CS
 **Background**: Files with 499 events were tested and confirmed to import successfully into Google Calendar. The value of 499 is a working estimate based on successful testing, not a confirmed hard limit from Google.
 
 **Solution**: The export-to-ical.ts script automatically handles file splitting:
-1. **Small calendars (≤499 events)**: Creates single file `calendar-export.ics`
+1. **Small calendars (≤499 events)**: Creates single file `output/calendar-export.ics`
 2. **Large calendars (500+ events)**: Creates split files `calendar-part-X-of-Y.ics` with 499 events each
 
-**Implementation** (`export-to-ical.ts:142-187`):
+**Implementation** (`src/scripts/export-to-ical.ts:142-187`):
 ```typescript
 async function splitAndSaveCalendar(
   entries: CalendarEntry[],
@@ -747,7 +747,7 @@ async function splitAndSaveCalendar(
     const chunkEntries = entries.slice(startIdx, endIdx);
 
     const outputPath = numFiles === 1
-      ? 'calendar-export.ics'
+      ? 'output/calendar-export.ics'
       : `calendar-part-${fileNum + 1}-of-${numFiles}.ics`;
 
     const converter = new ICalConverter();
@@ -778,7 +778,7 @@ async function splitAndSaveCalendar(
 ```
 
 **User Experience**:
-- **Small calendars**: Get single `calendar-export.ics` file with clear success message
+- **Small calendars**: Get single `output/calendar-export.ics` file with clear success message
 - **Large calendars**: Get split files with clear import instructions
 - **Sequential import**: Must import split files one at a time, waiting for each to complete
 
@@ -813,11 +813,11 @@ Total events: 4886 (499 events per file)
 Generating 1 iCalendar file for Google Calendar...
 Total events: 250 (499 events per file)
 
-✓ Created calendar-export.ics with 250 events
+✓ Created output/calendar-export.ics with 250 events
 
 ✓ Successfully created 1 file
 
-You can import calendar-export.ics into Google Calendar or any RFC 5545-compliant calendar application.
+You can import output/calendar-export.ics into Google Calendar or any RFC 5545-compliant calendar application.
 ```
 
 **Technical Details**:

@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - "Deleted Items" and localized variants (Gelöschte Objekte, Éléments supprimés, etc.)
   - Prevents importing trashed calendar entries
 - **Overlapping Event Merge**: Automatic merging of overlapping events with same description
-  - New utility script `src/utils/merge-overlapping-events.ts` for manual/automatic merging
+  - New utility script `src/scripts/merge-overlapping-events.ts` for manual/automatic merging
   - Subject normalization removes time prefixes (e.g., "09:30", "11:05")
   - Merges events with earliest start and latest end time
   - Selects best description from multiple entries
@@ -97,7 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - PST import now validates all recurrence patterns automatically
-- CSV import (`export-to-ical.ts`) includes defense-in-depth cleanup for UNTIL=2100 patterns
+- CSV import (`src/scripts/export-to-ical.ts`) includes defense-in-depth cleanup for UNTIL=2100 patterns
 
 ### Fixed
 
@@ -181,7 +181,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- CSV to ICS conversion script (`export-to-ical.ts`)
+- CSV to ICS conversion script (`src/scripts/export-to-ical.ts`)
 - Ability to convert `calendar-export.csv` to `calendar-export.ics`
 - Full RFC 5545 compliant iCalendar generation from CSV data
 - Proper CSV parsing with quoted field handling
@@ -194,7 +194,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `export-to-ical.ts` now reads from CSV file instead of database
+- `src/scripts/export-to-ical.ts` now reads from CSV file instead of database
 - Simplified workflow: export to CSV for analysis, then convert to ICS for import
 - README restructured with prominent workflow sections at top
 - Export workflows now clearly documented in Quick Start section
@@ -216,7 +216,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Critical: Invalid RRULE format causing silent Google Calendar import failures**
   - Yearly recurrence now correctly uses `FREQ=YEARLY` without `INTERVAL=12`
   - Outlook stores yearly events as 12-month intervals, now properly converted to iCalendar standard
-  - Added automatic cleanup in `export-to-ical.ts` for existing CSV data with invalid intervals
+  - Added automatic cleanup in `src/scripts/export-to-ical.ts` for existing CSV data with invalid intervals
   - ICS files now import successfully into Google Calendar and other RFC 5545 compliant applications
 
 ## [1.2.1] - 2025-12-04
@@ -242,7 +242,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- CSV export functionality via `export-to-csv.ts` script
+- CSV export functionality via `src/scripts/export-to-csv.ts` script
 - Comprehensive RRULE recurrence pattern support using pst-extractor's RecurrencePattern class
 - Support for DAILY, WEEKLY, MONTHLY, YEARLY frequencies with ordinals, intervals, and counts
 - Birthday/anniversary subject standardization to `(dd/mm/yyyy)` format

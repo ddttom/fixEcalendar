@@ -5,8 +5,8 @@
  */
 
 import * as fs from 'fs';
-import { CalendarEntry } from './src/parser/types';
-import { ICalConverter } from './src/converter/ical-converter';
+import { CalendarEntry } from '../parser/types';
+import { ICalConverter } from '../converter/ical-converter';
 
 /**
  * Parse CSV line handling quoted fields
@@ -192,11 +192,12 @@ function rowToEntry(fields: string[]): CalendarEntry {
  * Google Calendar has a 499-event import limit per file
  */
 async function exportToICS() {
-  const csvPath = 'calendar-export.csv';
+  const csvPath = 'output/calendar-export.csv';
 
   // Check if CSV file exists
   if (!fs.existsSync(csvPath)) {
     console.error('CSV file not found. Please run export-to-csv.ts first.');
+    console.error(`Expected location: ${csvPath}`);
     process.exit(1);
   }
 
@@ -229,7 +230,7 @@ async function exportToICS() {
 
     // Automatically split if needed (default: 499 events per file)
     const converter = new ICalConverter();
-    await converter.convertAndSaveSplit(entries, 'calendar-export.ics', {
+    await converter.convertAndSaveSplit(entries, 'output/calendar-export.ics', {
       calendarName: 'Exported Calendar',
       timezone: 'UTC',
     });

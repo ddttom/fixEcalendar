@@ -111,13 +111,13 @@ fixECalendar archive.pst --output calendar.ics --include-private
 
 ```bash
 # Step 1: Export to CSV
-npx ts-node export-to-csv.ts
+npx ts-node src/scripts/export-to-csv.ts
 
 # Step 2: Convert CSV to ICS
-npx ts-node export-to-ical.ts
+npx ts-node src/scripts/export-to-ical.ts
 ```
 
-Result: `calendar-export.ics` ready to import! 🎉
+Result: `output/calendar-export.ics` ready to import! 🎉
 
 ---
 
@@ -162,12 +162,12 @@ fixECalendar large-file1.pst large-file2.pst --include-private
 fixECalendar --db-stats
 
 # Step 3: Export database to CSV (for review/editing)
-npx ts-node export-to-csv.ts
-# Creates: calendar-export.csv (665KB, 4,084 entries)
+npx ts-node src/scripts/export-to-csv.ts
+# Creates: output/calendar-export.csv (665KB, 4,084 entries)
 
 # Step 4: Convert CSV to ICS (for calendar import)
-npx ts-node export-to-ical.ts
-# Creates: calendar-export.ics (790KB, 2,490 events)
+npx ts-node src/scripts/export-to-ical.ts
+# Creates: output/calendar-export.ics (790KB, 2,490 events)
 ```
 
 **Why use Workflow 2?**
@@ -183,9 +183,9 @@ npx ts-node export-to-ical.ts
 ```
 PST File(s) → fixECalendar → Database (.fixecalendar.db)
                                     ↓
-                         export-to-csv.ts → CSV (calendar-export.csv)
+                      src/scripts/export-to-csv.ts → CSV (output/calendar-export.csv)
                                     ↓
-                        export-to-ical.ts → ICS (calendar-export.ics)
+                     src/scripts/export-to-ical.ts → ICS (output/calendar-export.ics)
                                                       ↓
                                             Import to Calendar App
 ```
@@ -214,15 +214,15 @@ fixECalendar --output calendar.ics
 **Step 4: (Optional) Export to CSV for spreadsheet analysis**
 
 ```bash
-npx ts-node export-to-csv.ts
-# Creates calendar-export.csv with all entries
+npx ts-node src/scripts/export-to-csv.ts
+# Creates output/calendar-export.csv with all entries
 ```
 
 **Step 5: (Optional) Convert CSV to ICS**
 
 ```bash
-npx ts-node export-to-ical.ts
-# Creates calendar-export.ics from CSV data
+npx ts-node src/scripts/export-to-ical.ts
+# Creates output/calendar-export.ics from CSV data
 ```
 
 **Step 6: (Optional) Fix corrupted recurrence dates**
@@ -433,10 +433,10 @@ Export your calendar entries to CSV format for analysis in Excel, Google Sheets,
 
 ```bash
 # Export all entries to CSV
-npx ts-node export-to-csv.ts
+npx ts-node src/scripts/export-to-csv.ts
 ```
 
-This creates `calendar-export.csv` with the following columns:
+This creates `output/calendar-export.csv` with the following columns:
 
 - Subject
 - Start Date / Start Time
@@ -499,17 +499,17 @@ This is particularly important for recurring birthday/anniversary events that ma
 If you have a CSV file exported from the database, you can convert it to iCalendar (ICS) format:
 
 ```bash
-# Convert calendar-export.csv to calendar-export.ics
-npx ts-node export-to-ical.ts
+# Convert output/calendar-export.csv to output/calendar-export.ics
+npx ts-node src/scripts/export-to-ical.ts
 ```
 
 This creates RFC 5545 compliant iCalendar files from your CSV data. The script:
 
-- Reads from `calendar-export.csv`
+- Reads from `output/calendar-export.csv`
 - Parses all calendar entries with proper date/time handling
 - Unescapes literal `\n` back to actual newlines in descriptions
 - Automatically splits files into 499-event chunks (tested working value for Google Calendar)
-- Generates `calendar-export.ics` (small files) or `calendar-part-X-of-Y.ics` (large calendars)
+- Generates `output/calendar-export.ics` (small files) or `calendar-part-X-of-Y.ics` (large calendars)
 - Preserves all properties (attendees, recurrence, reminders, etc.)
 - Handles all-day events and birthdays correctly
 
@@ -624,8 +624,8 @@ npx ts-node cleanup-suspicious-recurrence.ts
 cat recurrence-cleanup-report.csv
 
 # Re-export with fixed patterns
-npx ts-node export-to-csv.ts
-npx ts-node export-to-ical.ts
+npx ts-node src/scripts/export-to-csv.ts
+npx ts-node src/scripts/export-to-ical.ts
 ```
 
 **What it does:**
@@ -852,13 +852,18 @@ fixEcalendar/
 │   │   ├── validators.ts        # Validation
 │   │   ├── error-handler.ts    # Error handling
 │   │   ├── text-formatter.ts   # Text formatting utilities
-│   │   ├── recurrence-validator.ts # Recurrence pattern validation (v1.2.5)
+│   │   └── recurrence-validator.ts # Recurrence pattern validation (v1.2.5)
+│   ├── scripts/
+│   │   ├── export-to-csv.ts    # Database to CSV export
+│   │   ├── export-to-ical.ts   # CSV to ICS conversion
 │   │   └── merge-overlapping-events.ts # Merge overlapping events (v1.2.6)
 │   └── config/
 │       └── constants.ts         # Constants & validation config
+├── output/                      # Generated export files (gitignored except .gitkeep)
+│   ├── .gitkeep                # Keeps folder in git
+│   ├── calendar-export.csv     # CSV export (ignored)
+│   └── *.ics                   # ICS exports (ignored)
 ├── cleanup-suspicious-recurrence.ts # Fix absurd recurrence patterns (v1.2.5)
-├── export-to-csv.ts            # Database to CSV export
-├── export-to-ical.ts           # CSV to ICS conversion
 ├── sanitize-recurrence-dates.ts # Fix corrupted UNTIL dates (v1.2.4)
 ├── .fixecalendar.db            # SQLite database (generated)
 ├── dist/                        # Compiled JavaScript
@@ -913,11 +918,11 @@ If you exported ICS files before v1.2.2, simply re-run the export:
 
 ```bash
 # Regenerate from CSV
-npx ts-node export-to-ical.ts
+npx ts-node src/scripts/export-to-ical.ts
 
 # Or regenerate entire workflow
-npx ts-node export-to-csv.ts
-npx ts-node export-to-ical.ts
+npx ts-node src/scripts/export-to-csv.ts
+npx ts-node src/scripts/export-to-ical.ts
 ```
 
 The new ICS file will import successfully into Google Calendar, Apple Calendar, and all RFC 5545 compliant applications.
@@ -991,7 +996,7 @@ If you processed files before v1.2.0, simply re-export:
 fixECalendar --output calendar.ics
 
 # For CSV
-npx ts-node export-to-csv.ts
+npx ts-node src/scripts/export-to-csv.ts
 ```
 
 No need to re-import PST files - the fix is applied during export.

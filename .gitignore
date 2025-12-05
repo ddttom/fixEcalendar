@@ -57,10 +57,9 @@ temp/
 *.db-wal
 .fixecalendar.db*
 
-# Generated calendar exports
-*.ics
-calendar-*.ics
-*-export.csv
+# Generated calendar exports (output folder contents, but keep folder structure)
+output/*
+!output/.gitkeep
 
 # AI Assistant files (AGENTS.md is symlink to CLAUDE.md)
 AGENTS.md

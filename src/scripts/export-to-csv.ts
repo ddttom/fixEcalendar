@@ -7,7 +7,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import Database from 'better-sqlite3';
-import { formatDescription } from './src/utils/text-formatter';
+import { formatDescription } from '../utils/text-formatter';
 
 function escapeCSV(value: any): string {
   if (value === null || value === undefined) {
@@ -193,7 +193,14 @@ async function exportToCSV() {
 
   const csvContent = rows.join('\n');
 
-  const outputPath = 'calendar-export.csv';
+  const outputPath = path.join('output', 'calendar-export.csv');
+
+  // Ensure output directory exists
+  const outputDir = path.dirname(outputPath);
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
   fs.writeFileSync(outputPath, csvContent, 'utf-8');
 
   const uniqueEntries = rows.length - 1; // Subtract header row

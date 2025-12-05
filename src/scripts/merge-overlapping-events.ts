@@ -14,7 +14,7 @@
  * 4. Keep the entry with the longest description
  * 5. Delete duplicate entries
  *
- * Usage: npx ts-node src/utils/merge-overlapping-events.ts [--dry-run]
+ * Usage: npx ts-node src/scripts/merge-overlapping-events.ts [--dry-run]
  */
 
 import Database from 'better-sqlite3';
@@ -237,8 +237,8 @@ async function mergeOverlappingEvents(dryRun: boolean = false) {
     } else {
       console.log(`✓ Successfully merged ${mergedCount} groups and deleted ${deletedCount} duplicate entries\n`);
       console.log('Next steps:');
-      console.log('1. Run: npx ts-node export-to-csv.ts');
-      console.log('2. Run: npx ts-node export-to-ical.ts\n');
+      console.log('1. Run: npx ts-node src/scripts/export-to-csv.ts');
+      console.log('2. Run: npx ts-node src/scripts/export-to-ical.ts\n');
     }
   } catch (error) {
     console.error('Error during merge:', error);
