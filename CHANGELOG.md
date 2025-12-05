@@ -10,10 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.0] - 2024-12-04
 
 ### Added
+
 - File Status Report: Shows summary of problematic PST files at end of processing
   - Files with errors (unreadable, corrupted, or no calendar folders)
   - Files with zero calendar entries
   - Files where all entries were duplicates
+- **Smart Folder Filtering**: Automatically skips irrelevant folders
+  - "Deleted Items" and localized variants (Gelöschte Objekte, Éléments supprimés, etc.)
+  - Prevents importing trashed calendar entries
 - **Overlapping Event Merge**: Automatic merging of overlapping events with same description
   - New utility script `src/utils/merge-overlapping-events.ts` for manual/automatic merging
   - Subject normalization removes time prefixes (e.g., "09:30", "11:05")
@@ -35,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Convert, mark, and preserve suspicious data instead
 
 ### Changed
+
 - **Breaking Change**: Now processes ALL calendar folders found in a PST file, not just the largest one
 - Multiple calendar folders in a single PST are now all processed automatically
 - Clear folder-by-folder progress indication when processing multiple folders
@@ -44,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CSV import includes cleanup for legacy data
 
 ### Fixed
+
 - Calendar folder detection now uses Microsoft's PR_CONTAINER_CLASS property (containerClass)
 - Folders like "Calendar (This computer only)" are now correctly recognized as calendar folders
 - Parser now finds and processes ALL calendar folders in PST file, including nested folders
@@ -62,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Merged 7 groups of overlapping events in typical calendar
 
 ### Refactored
+
 - Reorganized project structure for better maintainability
   - Moved merge-overlapping-events.ts to src/utils/ directory
   - Removed legacy src/index.ts (direct PST → ICS without database)
@@ -72,6 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.5] - 2025-12-04
 
 ### Added
+
 - **Recurrence Pattern Validation System**: Comprehensive validation to prevent absurd recurring schedules
   - New module `src/utils/recurrence-validator.ts` with configurable caps per frequency
   - DAILY: Maximum 5 years (unless infinite/COUNT-based)
@@ -87,10 +95,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configuration constants in `src/config/constants.ts` for customizable thresholds
 
 ### Changed
+
 - PST import now validates all recurrence patterns automatically
 - CSV import (`export-to-ical.ts`) includes defense-in-depth cleanup for UNTIL=2100 patterns
 
 ### Fixed
+
 - **Critical**: Events with corrupted recurrence patterns creating 70-85 year schedules (e.g., "Toms Online Photo Course" repeating daily for 76 years = 27,740 occurrences)
 - Fixed 72 entries with UNTIL=2100 spanning 70-85 years:
   - 11 DAILY entries: Capped to 5 years or converted to COUNT
@@ -102,15 +112,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.4] - 2025-12-04
 
 ### Added
+
 - Script `sanitize-recurrence-dates.ts` to fix corrupted UNTIL dates in existing database entries
 - Automatic file splitting for Google Calendar compatibility (499-event chunks)
 - Historical date handling for recurring birthdays/anniversaries before 1970
 
 ### Changed
+
 - Birthday/anniversary events before 1970 now use modern anchor date (2020) for Google Calendar compatibility
 - Original birth year preserved in subject line, actual event dates unchanged
 
 ### Fixed
+
 - **Critical**: CSV export now properly escapes newlines in descriptions
   - Multi-line descriptions converted to literal `\n` in CSV to prevent row splitting
   - CSV import correctly unescapes `\n` back to actual newlines for ICS generation
@@ -130,7 +143,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added BYMONTH parameter to yearly events with BYMONTHDAY
   - Fixed 465 yearly recurring events that Google Calendar was rejecting
 - Description field now filters out HTML/CSS junk from malformed Outlook extractions
-  - Removes patterns like "false\nfalse\nfalse", "EN-GB", "X-NONE", "/* Style Definitions */", "table.MsoNormal"
+  - Removes patterns like "false\nfalse\nfalse", "EN-GB", "X-NONE", "/*Style Definitions*/", "table.MsoNormal"
   - Cleaned 1,832 corrupted descriptions
 - Export-to-ical.ts now automatically splits large calendars into 499-event chunks
   - Files with 499 events import successfully into Google Calendar (tested and confirmed)
@@ -140,6 +153,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.3] - 2025-12-04
 
 ### Added
+
 - **Intelligent Date Recovery & Data Quality**: Automatically recovers valid appointments and filters corrupted data
   - Uses duration field to calculate missing start/end times
   - Falls back to alternative date fields (recurrenceBase, creationTime, etc.)
@@ -150,6 +164,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Result: 60% reduction in database bloat while recovering more valid entries
 
 ### Fixed
+
 - **Critical**: Calendar folder detection now handles non-standard folder names and nested structures
 - Uses Microsoft's PR_CONTAINER_CLASS property (`IPF.Appointment`) for reliable folder detection
 - Folders like "Calendar (This computer only)" are now correctly recognized
@@ -162,6 +177,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.2] - 2025-12-04
 
 ### Added
+
 - CSV to ICS conversion script (`export-to-ical.ts`)
 - Ability to convert `calendar-export.csv` to `calendar-export.ics`
 - Full RFC 5545 compliant iCalendar generation from CSV data
@@ -174,6 +190,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic test suite to satisfy Jest test runner
 
 ### Changed
+
 - `export-to-ical.ts` now reads from CSV file instead of database
 - Simplified workflow: export to CSV for analysis, then convert to ICS for import
 - README restructured with prominent workflow sections at top
@@ -184,6 +201,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated README prerequisites to specify Node.js 18.18.0 or higher
 
 ### Fixed
+
 - Duplicate entries in CSV export caused by birthday/anniversary date normalization
 - CSV export now tracks unique entries by subject + date + time
 - Reports number of duplicates removed during export (e.g., "49 duplicates removed")
@@ -201,32 +219,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.1] - 2025-12-04
 
 ### Added
+
 - Created centralized text formatting utility (`src/utils/text-formatter.ts`)
 - `formatDescription()` function for consistent description formatting across exports
 
 ### Changed
+
 - Description fields now automatically cleaned and formatted in all exports
 - Whitespace trimmed from both ends of descriptions
 - Multiple consecutive line breaks (3 or more) reduced to exactly 2 for readability
 - Description fields truncated to 79 characters maximum
 
 ### Fixed
+
 - Excessive whitespace in description fields across CSV and ICS exports
 - Unwieldy description text that made exports difficult to read
 
 ## [1.2.0] - 2025-12-03
 
 ### Added
+
 - CSV export functionality via `export-to-csv.ts` script
 - Comprehensive RRULE recurrence pattern support using pst-extractor's RecurrencePattern class
 - Support for DAILY, WEEKLY, MONTHLY, YEARLY frequencies with ordinals, intervals, and counts
 - Birthday/anniversary subject standardization to `(dd/mm/yyyy)` format
 
 ### Changed
+
 - All-day events now use proper `VALUE=DATE` format in iCal exports
 - CSV export properly normalizes all-day event dates to remove UTC timezone offsets
 
 ### Fixed
+
 - All-day event timezone handling - birthdays/anniversaries now display correctly as single-day events (no more 2-day spans)
 - CSV export now properly quotes all fields for correct Excel import
 - Leading zeros preserved in CSV exports
@@ -237,6 +261,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2025-12-03
 
 ### Added
+
 - SQLite database for intermediate storage of calendar entries
 - Automatic deduplication of calendar entries based on UID, subject, times, location, and organizer
 - `--database` option to specify custom database location
@@ -246,11 +271,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Processing statistics and logging for large file handling
 
 ### Changed
+
 - Optimized for very large PST files (6GB+)
 - Improved memory efficiency - uses ~500MB-1GB instead of loading entire file
 - Processing speed increased to ~1,000-2,000 entries/second
 
 ### Fixed
+
 - Memory issues when processing large PST files
 - Duplicate entries when re-processing same files
 - Inability to incrementally add PST files over time
@@ -258,6 +285,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2025-12-03
 
 ### Added
+
 - Initial release
 - PST to iCal (.ics) conversion
 - Batch processing of multiple PST files
@@ -277,6 +305,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Timezone setting with `--timezone` option
 
 ### Dependencies
+
 - pst-extractor - Pure JavaScript PST file parser
 - ical-generator - iCalendar file generation
 - commander - Command-line interface framework
