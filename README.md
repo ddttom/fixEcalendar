@@ -11,6 +11,7 @@ Convert calendar entries from Microsoft Outlook PST files to iCalendar (iCal/ICS
 - ✅ **Automatic deduplication** - never import the same event twice
 - ✅ **Intelligent date recovery** - recovers appointments with missing/invalid dates
 - ✅ **Data quality filtering** - automatically discards corrupted entries
+- ✅ **Smart Folder Filtering** - automatically skips "Deleted Items" and trash folders
 - ✅ **Intermediate SQLite database** for reliable processing
 - ✅ Export to standard iCal (.ics) format
 - ✅ **Export to CSV** for Excel/Google Sheets
@@ -100,11 +101,13 @@ npm run build
 ### 🚀 Two Ways to Export
 
 **Option A: Direct Export (Fast)**
+
 ```bash
 fixECalendar archive.pst --output calendar.ics --include-private
 ```
 
 **Option B: Two-Step Workflow (Flexible)**
+
 ```bash
 # Step 1: Export to CSV
 npx ts-node export-to-csv.ts
@@ -112,6 +115,7 @@ npx ts-node export-to-csv.ts
 # Step 2: Convert CSV to ICS
 npx ts-node export-to-ical.ts
 ```
+
 Result: `calendar-export.ics` ready to import! 🎉
 
 ---
@@ -141,12 +145,14 @@ The database file (`.fixecalendar.db`) is created in your current directory and 
 There are two main workflows for exporting your calendar data:
 
 #### Workflow 1: Direct PST to ICS (Fastest)
+
 ```bash
 # Import PST files and export directly to ICS
 fixECalendar archive.pst --output calendar.ics --include-private
 ```
 
 #### Workflow 2: PST → Database → CSV → ICS (Most Flexible)
+
 ```bash
 # Step 1: Import PST files into database
 fixECalendar large-file1.pst large-file2.pst --include-private
@@ -164,6 +170,7 @@ npx ts-node export-to-ical.ts
 ```
 
 **Why use Workflow 2?**
+
 - ✅ Review data in spreadsheet before final export
 - ✅ Edit entries in CSV if needed
 - ✅ Filter/sort data in Excel or Google Sheets
@@ -171,6 +178,7 @@ npx ts-node export-to-ical.ts
 - ✅ Multiple format outputs (CSV + ICS) from single source
 
 **Visual Workflow:**
+
 ```
 PST File(s) → fixECalendar → Database (.fixecalendar.db)
                                     ↓
@@ -184,34 +192,40 @@ PST File(s) → fixECalendar → Database (.fixecalendar.db)
 ### Basic Workflow for Large Files
 
 **Step 1: Import PST files into database**
+
 ```bash
 # Use --include-private to get ALL appointments (recommended)
 fixECalendar large-file1.pst large-file2.pst --include-private
 ```
 
 **Step 2: Check what was imported**
+
 ```bash
 fixECalendar --db-stats
 ```
 
 **Step 3: Export to iCal format**
+
 ```bash
 fixECalendar --output calendar.ics
 ```
 
 **Step 4: (Optional) Export to CSV for spreadsheet analysis**
+
 ```bash
 npx ts-node export-to-csv.ts
 # Creates calendar-export.csv with all entries
 ```
 
 **Step 5: (Optional) Convert CSV to ICS**
+
 ```bash
 npx ts-node export-to-ical.ts
 # Creates calendar-export.ics from CSV data
 ```
 
 **Step 6: (Optional) Fix corrupted recurrence dates**
+
 ```bash
 npx ts-node sanitize-recurrence-dates.ts
 # Fixes Microsoft Outlook bug with UNTIL=16001231 dates
@@ -244,11 +258,13 @@ fixECalendar --output combined-calendar.ics
 ### Advanced Options
 
 **Custom Database Location**
+
 ```bash
 fixECalendar input.pst --database /path/to/my-calendar.db
 ```
 
 **Filter by Date Range**
+
 ```bash
 # Only export events from 2024
 fixECalendar --output 2024.ics \
@@ -257,16 +273,19 @@ fixECalendar --output 2024.ics \
 ```
 
 **Clear Database and Start Fresh**
+
 ```bash
 fixECalendar --clear-db input.pst --output fresh.ics
 ```
 
 **Exclude Recurring Appointments**
+
 ```bash
 fixECalendar input.pst --no-recurring
 ```
 
 **Include Private Appointments (Important!)**
+
 ```bash
 # By default, private/confidential appointments are excluded
 # Use --include-private to include ALL appointments
@@ -276,6 +295,7 @@ fixECalendar input.pst --include-private
 **Note:** Many Outlook users have appointments marked as private/confidential. Without `--include-private`, you may only get a fraction of your calendar entries. It's recommended to use this flag for personal calendar exports.
 
 **Verbose Logging for Debugging**
+
 ```bash
 fixECalendar huge-file.pst --verbose
 ```
@@ -289,6 +309,7 @@ When processing multiple PST files, fixECalendar automatically generates a **Fil
 - **Files with only duplicates**: All entries were already in the database
 
 Example output:
+
 ```
 === File Status Report ===
 
@@ -365,6 +386,7 @@ fixECalendar --db-stats
 ```
 
 Shows:
+
 - Total number of entries
 - Number of source files processed
 - Date range of all events
@@ -414,6 +436,7 @@ npx ts-node export-to-csv.ts
 ```
 
 This creates `calendar-export.csv` with the following columns:
+
 - Subject
 - Start Date / Start Time
 - End Date / End Time
@@ -429,6 +452,7 @@ This creates `calendar-export.csv` with the following columns:
 - Reminder (minutes)
 
 **Benefits of CSV export:**
+
 - Easy filtering and sorting in spreadsheet apps
 - Quick date range analysis
 - Generate statistics (meetings per month, busiest days, etc.)
@@ -436,6 +460,7 @@ This creates `calendar-export.csv` with the following columns:
 - Create custom reports and visualizations
 
 **Excel Compatibility:** All fields are properly quoted for correct Excel import. This ensures that:
+
 - Leading zeros are preserved
 - Dates aren't auto-formatted incorrectly
 - Multi-line descriptions are escaped as literal `\n` (newlines converted to text)
@@ -443,6 +468,7 @@ This creates `calendar-export.csv` with the following columns:
 - Each calendar entry is guaranteed to be on a single CSV row
 
 **Description Field Formatting:** Description fields are automatically cleaned and formatted for optimal display:
+
 - Whitespace trimmed from both ends
 - Multiple consecutive line breaks (3+) reduced to 2 for better readability
 - Truncated to 79 characters to prevent unwieldy text in exports
@@ -451,6 +477,7 @@ This creates `calendar-export.csv` with the following columns:
 **All-Day Event Handling:** The CSV export properly handles all-day events (birthdays, anniversaries) by normalizing dates to remove timezone offsets, ensuring single-day events display correctly.
 
 **Subject Standardization:** Birthday and anniversary subjects are automatically standardized to include dates in `(dd/mm/yyyy)` format. For example:
+
 - `Trevor Simmonds's Birthday (4/6/47)` → `Trevor Simmonds's Birthday (04/06/1947)`
 - `Birthday - David Hamilton (1959)` → `Birthday - David Hamilton (07/04/1959)`
 - `Kevin & Sue's Anniversary (5th May 1979)` → `Kevin & Sue's Anniversary (05/05/1979)`
@@ -458,6 +485,7 @@ This creates `calendar-export.csv` with the following columns:
 This ensures all birthday/anniversary dates are consistently formatted across all exports.
 
 **Automatic Deduplication:** The CSV export includes intelligent deduplication to prevent duplicate entries:
+
 - Duplicates are detected after date normalization and subject standardization
 - Uses a unique key combining subject + start date + start time
 - Reports number of duplicates removed during export
@@ -475,6 +503,7 @@ npx ts-node export-to-ical.ts
 ```
 
 This creates RFC 5545 compliant iCalendar files from your CSV data. The script:
+
 - Reads from `calendar-export.csv`
 - Parses all calendar entries with proper date/time handling
 - Unescapes literal `\n` back to actual newlines in descriptions
@@ -484,6 +513,7 @@ This creates RFC 5545 compliant iCalendar files from your CSV data. The script:
 - Handles all-day events and birthdays correctly
 
 **Use case:** This is useful when you want to:
+
 - Share calendar data in iCal format after reviewing/editing the CSV
 - Import into calendar applications (Apple Calendar, Google Calendar, Outlook)
 - Create a portable calendar file from CSV data
@@ -502,6 +532,7 @@ npx ts-node src/utils/merge-overlapping-events.ts
 ```
 
 **What it does:**
+
 - Finds events on the same day with similar subjects (after normalization)
 - Removes time prefixes like "09:30", "11:05" from subjects
 - Checks if events actually overlap in time
@@ -513,6 +544,7 @@ npx ts-node src/utils/merge-overlapping-events.ts
   - **Location/Organizer**: First non-null value found
 
 **Example merge:**
+
 ```
 Before:
 - "Aquafit 09:30" (08:00-10:00)
@@ -533,6 +565,7 @@ fixECalendar input.pst --skip-merge
 ```
 
 **When to use:**
+
 - After importing PST files with duplicate time-stamped events
 - When you notice multiple entries for the same activity on one day
 - Before exporting to clean up your calendar data
@@ -549,12 +582,14 @@ npx ts-node sanitize-recurrence-dates.ts
 ```
 
 **What it does:**
+
 - Scans all recurrence patterns with UNTIL dates
 - Identifies corrupted dates (year < 1900)
 - Projects them to year 2100 for reasonable end dates
 - Reports how many entries were fixed
 
 **Example output:**
+
 ```
 Opening database...
 Searching for entries with corrupted recurrence dates...
@@ -567,6 +602,7 @@ Fixed: "Black Bin Today" - UNTIL=16001231 → UNTIL=21001231
 ```
 
 **When to use:**
+
 - After importing PST files with corrupted recurrence dates
 - If you see recurrence patterns with year 1600 in your calendar exports
 - Before exporting to CSV/ICS to ensure clean data
@@ -592,6 +628,7 @@ npx ts-node export-to-ical.ts
 ```
 
 **What it does:**
+
 - Scans all entries with UNTIL=2100 recurrence patterns
 - Validates patterns based on frequency:
   - **DAILY**: Caps at 5 years maximum
@@ -602,6 +639,7 @@ npx ts-node export-to-ical.ts
 - Generates detailed CSV report of all changes
 
 **Example output:**
+
 ```
 === Recurrence Pattern Cleanup ===
 Found 72 entries with UNTIL=2100
@@ -621,11 +659,13 @@ Patterns modified: 69
 ```
 
 **Impact:**
+
 - **Before**: "Toms Online Photo Course" repeated daily for 76 years (27,740 occurrences)
 - **After**: Capped at 5 years (1,825 occurrences or stripped if single event)
 - **Affected**: 72 entries total (11 daily, 45 weekly, 13 monthly, 3 yearly)
 
 **When to use:**
+
 - After importing PST files (especially large/old archives)
 - If your calendar exports show events repeating for 70+ years
 - Before exporting to calendar applications
@@ -784,6 +824,7 @@ If you're using [Claude Code](https://claude.com/claude-code), this project incl
 | `/export-workflow` | Run complete export workflow | Database → CSV → ICS |
 
 **Example usage:**
+
 - Type `/build-full` in Claude Code to run the complete quality check before committing
 - Type `/add-new` to add a new PST file to the database without duplicates
 - Type `/export-workflow` to generate both CSV and ICS files from the database
@@ -839,6 +880,7 @@ fixEcalendar/
 - **Until**: End date (UNTIL=20251231)
 
 **Real examples from extracted data:**
+
 - `FREQ=WEEKLY;BYDAY=MO;COUNT=7` - Every Monday, 7 occurrences
 - `FREQ=MONTHLY;BYDAY=2MO;COUNT=2` - 2nd Monday of month, 2 times
 - `FREQ=MONTHLY;BYDAY=-1FR` - Last Friday of month
@@ -861,11 +903,13 @@ fixEcalendar/
 **Cause:** Invalid RRULE format with `INTERVAL=12` for yearly recurring events. Outlook stores yearly recurrence as 12-month intervals, but RFC 5545 (iCalendar standard) expects yearly events to omit the interval or use `INTERVAL=1`.
 
 **Solution:** Fixed in version 1.2.2+. The tool now:
+
 - Automatically converts Outlook's 12-month intervals to proper yearly format
 - Cleans up existing CSV data during conversion to ICS
 - Generates RFC 5545 compliant RRULE for all yearly events
 
 If you exported ICS files before v1.2.2, simply re-run the export:
+
 ```bash
 # Regenerate from CSV
 npx ts-node export-to-ical.ts
@@ -884,12 +928,14 @@ The new ICS file will import successfully into Google Calendar, Apple Calendar, 
 **Cause:** The tool now uses Microsoft's PR_CONTAINER_CLASS property to detect calendar folders, which is more reliable than name-based detection. However, some PST files may have nested folder structures or corrupted folder properties.
 
 **Solution (Fixed in v1.2.3):**
+
 - The tool now searches ALL folders in the PST file, including nested folders
 - Uses Microsoft standard `IPF.Appointment` container class for detection
 - Automatically selects the folder with the most entries when multiple calendar folders exist
 - Falls back to name-based detection for compatibility
 
 **Supported Folder Names:**
+
 - "Calendar", "Kalender", "Calendrier", "Calendario" (any language variant)
 - "Calendar (This computer only)" and other non-standard names with `IPF.Appointment` container class
 - Nested calendar folders (e.g., Calendar > Calendar subfolder)
@@ -921,6 +967,7 @@ This typically increases imported entries significantly, as many Outlook users h
 5. **Subject validation**: Discards corrupted entries with no subject to prevent database bloat
 
 **Result:** Significantly more valid entries recovered while filtering out corrupted data. Example from real-world processing:
+
 - 72,629 total appointments in PST files
 - 4,911 quality entries imported
 - 341 appointments recovered via date sanitization
@@ -937,6 +984,7 @@ No user action required - this happens automatically during import.
 **Solution:** This was fixed in v1.2.0. Both iCal and CSV exports now properly normalize all-day event dates to remove timezone offsets. All-day events now display as single-day events with the correct date.
 
 If you processed files before v1.2.0, simply re-export:
+
 ```bash
 # For iCal
 fixECalendar --output calendar.ics
@@ -958,6 +1006,7 @@ Another process is using the database. Close other instances of fixECalendar or 
 ### Out of memory
 
 Very rare with the database approach. If it happens:
+
 1. Use `--verbose` to see where it fails
 2. Process files one at a time
 3. Ensure you have at least 2GB free RAM
@@ -965,10 +1014,12 @@ Very rare with the database approach. If it happens:
 ### Database file is large
 
 The database file grows with the number of entries:
+
 - 10,000 entries ≈ 100MB
 - 100,000 entries ≈ 1GB
 
 This is normal. To reduce size after deleting entries:
+
 ```bash
 sqlite3 .fixecalendar.db "VACUUM"
 ```
@@ -986,12 +1037,14 @@ sqlite3 .fixecalendar.db "VACUUM"
 ### PST File Format
 
 Supports both:
+
 - **ANSI format** (PST 97-2002) - 2GB size limit
 - **Unicode format** (PST 2003+) - Larger file support (tested up to 6.5GB)
 
 ### Database Schema
 
 The SQLite database includes:
+
 - `calendar_entries` - Main calendar events table with indexes
 - `attendees` - Attendee information (foreign key to entries)
 - `processing_log` - Processing history and statistics
@@ -1021,8 +1074,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- **Issues**: https://github.com/ddttom/fixEcalendar/issues
-- **Discussions**: https://github.com/ddttom/fixEcalendar/discussions
+- **Issues**: <https://github.com/ddttom/fixEcalendar/issues>
+- **Discussions**: <https://github.com/ddttom/fixEcalendar/discussions>
 
 ## Changelog
 
