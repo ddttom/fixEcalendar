@@ -26,7 +26,10 @@
       "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar commit:*)",
       "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar push)",
       "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar log --oneline -10)",
-      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar tag -l)"
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar tag -l)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar tag -a v1.3.0 -m \"Release v1.3.0\n\nMajor Features:\n- File Status Report for tracking problematic PST files\n- Automatic overlapping event merge with time prefix normalization\n- Process ALL calendar folders in PST files (breaking change from v1.2.x)\n- Birthday/anniversary pattern fixes for RFC 5545 compliance\n- Yearly BYDAY pattern enhancements with BYMONTH parameter\n\nCode Quality:\n- Reorganized utilities into src/utils/ directory\n- Removed legacy CLI (src/index.ts) for simplified codebase\n- Unified database-backed approach (src/index-with-db.ts)\n- Updated all documentation and imports\n\nBug Fixes:\n- Enhanced calendar folder detection with PR_CONTAINER_CLASS\n- Fixed nested calendar folder processing\n- Improved data preservation with UNCERTAIN DATE marking\n- Better handling of corrupted recurrence patterns\n\nSee CHANGELOG.md for complete details.\")",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar push --tags)",
+      "Bash(git -C /Users/tomcranstoun/Documents/GitHub/fixEcalendar tag -l -n10 v1.3.0)"
     ],
     "deny": [],
     "ask": []
